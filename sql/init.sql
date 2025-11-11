@@ -1,0 +1,52 @@
+-- Active: 1760138508635@@127.0.0.1@5432
+CREATE TABLE Vendor (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    phone VARCHAR(20) NOT NULL DEFAULT '',
+    email VARCHAR(100) NOT NULL DEFAULT '',
+    description VARCHAR(500) NOT NULL DEFAULT '',
+    owner VARCHAR(100) NOT NULL DEFAULT '',
+    logo BLOB
+);
+
+CREATE TABLE Product (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    description VARCHAR(500) NOT NULL DEFAULT '',
+    count DECIMAL(10, 2),
+    price DECIMAL(10, 2) NOT NULL,
+    image BLOB,
+    vid INT NOT NULL,
+    FOREIGN KEY (vid) REFERENCES Vendor(id)
+);
+
+CREATE TABLE Sale (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    discount DECIMAL(10, 2) NOT NULL,
+    date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE SaleItem (
+    pid INT NOT NULL,
+    sid INT NOT NULL,
+    quantity DECIMAL(10, 2) NOT NULL,
+    FOREIGN KEY (sid) REFERENCES Sale(id),
+    FOREIGN KEY (pid) REFERENCES Product(id),
+    PRIMARY KEY (sid, pid)
+);
+
+CREATE TABLE Booth (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    xcor DECIMAL(10, 2) NOT NULL,
+    ycor DECIMAL(10, 2) NOT NULL
+);
+
+CREATE TABLE Reservation (
+    vid INT NOT NULL,
+    bid INT NOT NULL,
+    date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    duration INT NOT NULL,
+    FOREIGN KEY (bid) REFERENCES Booth(id),
+    FOREIGN KEY (vid) REFERENCES Vendor(id),
+    PRIMARY KEY (vid, bid)
+);

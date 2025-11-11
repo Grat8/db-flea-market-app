@@ -17,7 +17,7 @@ CREATE TABLE Product (
     price DECIMAL(10, 2) NOT NULL,
     image BLOB,
     vid INT NOT NULL,
-    FOREIGN KEY (vid) REFERENCES Vendor(id)
+    FOREIGN KEY (vid) REFERENCES Vendor(id) ON DELETE CASCADE
 );
 
 CREATE TABLE Sale (
@@ -30,8 +30,8 @@ CREATE TABLE SaleItem (
     pid INT NOT NULL,
     sid INT NOT NULL,
     quantity DECIMAL(10, 2) NOT NULL,
-    FOREIGN KEY (sid) REFERENCES Sale(id),
-    FOREIGN KEY (pid) REFERENCES Product(id),
+    FOREIGN KEY (sid) REFERENCES Sale(id) ON DELETE CASCADE,
+    FOREIGN KEY (pid) REFERENCES Product(id) ON DELETE CASCADE,
     PRIMARY KEY (sid, pid)
 );
 
@@ -46,7 +46,7 @@ CREATE TABLE Reservation (
     bid INT NOT NULL,
     date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     duration INT NOT NULL,
-    FOREIGN KEY (bid) REFERENCES Booth(id),
-    FOREIGN KEY (vid) REFERENCES Vendor(id),
+    FOREIGN KEY (bid) REFERENCES Booth(id) ON DELETE CASCADE,
+    FOREIGN KEY (vid) REFERENCES Vendor(id) ON DELETE CASCADE,
     PRIMARY KEY (vid, bid)
 );

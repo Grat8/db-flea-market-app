@@ -9,3 +9,6 @@ To make sure changes to the init.sql file are updated or to remove the current d
 
 To execute sql statements on the db after running the docker, use `docker exec -it mysql-container mysql -u root -p`.
 Or to just execute bash commands on the container itself, use `docker exec -it mysql-container bash`.
+
+Endpoints are available at localhost:3000/api/\[routing\]
+(i.e. localhost:3000/api/vendor/4)

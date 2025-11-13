@@ -44,7 +44,7 @@ routes.get('/vendor', (req, res) => {
   });
 });
 
-app.get('/vendor/:vid', (req, res) => {
+routes.get('/vendor/:vid', (req, res) => {
   db.query(`SELECT * FROM vendor where id = ${req.params["vid"]}`, (err, results) => {
     if (err) {
       console.error('Error executing query: ' + err.stack);

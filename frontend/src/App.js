@@ -6,8 +6,8 @@ import VendorLogin from "./pages/VendorLogin";
 import VendorDetails from "./pages/VendorDetails";
 import VendorDashboard from "./pages/VendorDashboard";
 import ProductDetails from "./pages/ProductDetails";
-import BoothList from "./pages/BoothList";
-import VendorReservation from "./pages/VendorReservation";
+import BoothListingPage from "./pages/BoothListingPage";
+import VendorReservationPage from "./pages/VendorReservationPage";
 import VendorRegistration from "./pages/VendorRegistration";
 
 function App() {
@@ -23,8 +23,8 @@ function App() {
           <Route path="/vendor/:id" element={<VendorDetails />} />
           <Route path="/stats" element={<VendorDashboard />} />
           <Route path="/product/:id" element={<ProductDetails />} />
-          <Route path="/booths" element={<BoothList />} />
-          <Route path="/reserve" element={<VendorReservation />} />
+          <Route path="/booths" element={<BoothListingPage />} />
+          <Route path="/reserve" element={<VendorReservationPage />} />
         </Routes>
       </Router>
     </div>

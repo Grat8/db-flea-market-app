@@ -52,13 +52,13 @@ CREATE TABLE Booth (
 );
 
 CREATE TABLE Reservation (
+    id INT AUTO_INCREMENT PRIMARY KEY,
     vid INT NOT NULL,
     bid INT NOT NULL,
     date DATETIME NOT NULL,
     duration INT NOT NULL,
     FOREIGN KEY (bid) REFERENCES Booth(id) ON DELETE CASCADE,
-    FOREIGN KEY (vid) REFERENCES Vendor(id) ON DELETE CASCADE,
-    PRIMARY KEY (vid, bid)
+    FOREIGN KEY (vid) REFERENCES Vendor(id) ON DELETE CASCADE
 );
 
 INSERT INTO Vendor (id, name, phone, description, owner) VALUES

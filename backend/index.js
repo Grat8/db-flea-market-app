@@ -322,6 +322,39 @@ routes.get('/booth/:bid/reservation', (req, res) => {
   });
 });
 
+routes.get('/reservation', (req, res) => {
+  db.query(`SELECT * FROM reservation`, (err, results) => {
+    if (err) {
+      console.error('Error executing query: ' + err.stack);
+      res.status(500).send('Error fetching reservations');
+      return;
+    }
+    res.json(results);
+  });
+});
+
+routes.post('/reservation', (req, res) => {
+  const { vid, bid, date, duration } = req.body;
+
+  if (!vid || !bid || !date || !duration) {
+    res.status(400).send('Missing required reservation fields');
+    return;
+  }
+
+  const query = `INSERT INTO reservation (vid, bid, date, duration) VALUES (?, ?, ?, ?)`;
+
+  db.query(query, [vid, bid, date, duration], (err, results) => {
+    if (err) {
+      console.error('Error executing query: ' + err.stack);
+      res.status(500).send('Error creating reservation');
+      return;
+    }
+
+    res.status(201).json({ message: 'Reservation created successfully', id: results.insertId });
+  });
+});
+
+
 // Start the server
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);

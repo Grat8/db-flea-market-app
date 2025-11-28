@@ -1,72 +1,66 @@
 .vendor-page-container {
-    width: 100%;
-    max-width: 900px;
-    margin: 0 auto;
+  display: flex;
+  justify-content: center;
+  padding: 30px;
+  font-family: Arial, sans-serif;
 }
 
 .section {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    margin-bottom: 40px;
+  background: white;
+  padding: 25px 35px;
+  border-radius: 10px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  width: 400px;
+  text-align: center;
 }
 
 .section-title {
-    font-size: 25px;
-    text-align: center;
+  margin-bottom: 10px;
+  font-size: 1.5rem;
 }
 
 .section-divider {
-    margin-bottom: 20px;
-    margin-top: 10px;
-    width: 60%;
-    border-top: 1.8px solid black;
-}
-
-.vendor-form, .booth-form {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-    width: 60%;
-    margin: 0 auto;
-}
-
-.vendor-form label,
-.booth-form label {
-    display: flex;
-    flex-direction: column;
-    font-weight: bold;
+  margin-bottom: 20px;
+  border: 1px solid #ccc;
 }
 
 label {
-    display: block;
-    margin-bottom: 6px;
-    text-align: left;
+  display: flex;
+  flex-direction: row;
+  align-items: baseline; 
+  justify-content: space-between;
+  margin-bottom: 15px;
+  font-size: 0.95rem;
+  gap: 10px;
 }
 
-input, select, textarea {
-    margin-top: 10px;     
-}
-
-.vendor-form input,
-.booth-form select,
-.vendor-form select {
-    padding: 6px;
-    border-radius: 5px;
-    border: 1px solid black;
+label select,
+label input {
+  padding: 5px 8px;
+  font-size: 0.95rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  flex: 1; 
 }
 
 .submit-button {
-    margin-top: 20px;
-    padding: 10px 15px;
-    font-size: 1rem;
-    background-color: dodgerblue;
-    color: white;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
+  margin-top: 20px;
+  padding: 8px 20px;
+  font-size: 1rem;
+  font-weight: bold;
+  border: none;
+  border-radius: 5px;
+  background-color: dodgerblue;
+  color: white;
+  cursor: pointer;
+  transition: background 0.2s;
 }
 
-.submit-button:hover {
-    background-color: royalblue;
+.submit-button:disabled {
+  background-color: #aaa;
+  cursor: not-allowed;
+}
+
+.submit-button:hover:not(:disabled) {
+  background-color: lightskyblue
 }

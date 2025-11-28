@@ -1,91 +1,215 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import axios from "axios";
 import "./VendorReservationPage.css";
 
 const VendorReservationPage: React.FC = () => {
-    const [vendorName, setVendorName] = useState("");
-    const [vendorEmail, setVendorEmail] = useState("");
-    const [vendorPhone, setVendorPhone] = useState("");
+  const [booths, setBooths] = useState<any[]>([]);
+  const [selectedBooth, setSelectedBooth] = useState("");
+  const [selectedDay, setSelectedDay] = useState("");
+  const [availableDays, setAvailableDays] = useState<string[]>([]);
+  const [availableTimes, setAvailableTimes] = useState<string[]>([]);
+  const [startHour, setStartHour] = useState("");
+  const [endHour, setEndHour] = useState("");
 
-    const [selectedBooth, setSelectedBooth] = useState("");
-    const [selectedTimes, setSelectedTimes] = useState("");
+  const vendor = JSON.parse(localStorage.getItem("vendor") || "{}");    // get logged in vendor from local storage
+  const vendorId = vendor?.vendor_id ?? null;
 
-    return (
-        <div className="vendor-page-container">
+  useEffect(() => {
+    const fetchBooths = async () => {
+      try {
+        const boothRes = await axios.get("http://localhost:3000/api/booth");
+        const boothData = boothRes.data;
 
-            {/* Vendor Registration Section */}
-            <div className="section">
-                <h2 className="section-title">Vendor Registration</h2>
-                <hr className="section-divider" />
+        const boothWithAvailability = await Promise.all(
+          boothData.map(async (b: any) => {
+            const res = await axios.get(
+              `http://localhost:3000/api/booth/${b.id}/reservation`
+            );
 
-                <form className="vendor-form">
-                    <label>
-                        Vendor Name
-                        <input
-                            type="text"
-                            value={vendorName}
-                            onChange={(e) => setVendorName(e.target.value)}
-                        />
-                    </label>
+            const reservations = res.data;
+            const reservedSlots: Record<string, any[]> = {};
 
-                    <label>
-                        Email
-                        <input
-                            type="email"
-                            value={vendorEmail}
-                            onChange={(e) => setVendorEmail(e.target.value)}
-                        />
-                    </label>
+            reservations.forEach((r: any) => {
+              const start = new Date(r.date);
+              const day = start.toISOString().split("T")[0];
 
-                    <label>
-                        Phone
-                        <input
-                            type="text"
-                            value={vendorPhone}
-                            onChange={(e) => setVendorPhone(e.target.value)}
-                        />
-                    </label>
-                </form>
-            </div>
+              if (!reservedSlots[day]) reservedSlots[day] = [];
+              reservedSlots[day].push({
+                start: start.getHours(),
+                duration: r.duration,
+                vendorName: r.vendorName ?? "Unknown",
+              });
+            });
 
+            return { ...b, reservedSlots };
+          })
+        );
 
-            {/* Booth Reservation Section */}
-            <div className="section">
-                <h2 className="section-title">Booth Reservation</h2>
-                <hr className="section-divider" />
+        setBooths(boothWithAvailability);
+      } catch (err) {
+        console.error("Error fetching booths:", err);
+      }
+    };
 
-                <div className="booth-form">
-                    <label>
-                        Select Booth
-                        <select
-                            value={selectedBooth}
-                            onChange={(e) => setSelectedBooth(e.target.value)}
-                        >
-                            <option value="">-- Choose Booth --</option>
-                            <option value="1">Booth 1</option>
-                            <option value="2">Booth 2</option>
-                            <option value="3">Booth 3</option>
-                        </select>
-                    </label>
+    fetchBooths();
+  }, []);
 
-                    <label>
-                        Time Slot
-                        <select
-                            value={selectedTimes}
-                            onChange={(e) => setSelectedTimes(e.target.value)}
-                        >
-                            <option value="">-- Choose Time --</option>
-                            <option value="8am-10am">8am - 10am</option>
-                            <option value="10am-12pm">10am - 12pm</option>
-                            <option value="12pm-2pm">12pm - 2pm</option>
-                        </select>
-                    </label>
+  const handleBoothChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const bid = e.target.value;
+    setSelectedBooth(bid);
+    setSelectedDay("");
+    setStartHour("");
+    setEndHour("");
 
-                    <button className="submit-button">Submit Registration</button>
-                </div>
-            </div>
+    const booth = booths.find((b) => b.id.toString() === bid);
+    if (!booth) return;
 
-        </div>
-    );
+    // show next 7 days from today of booths
+    const days = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date();
+      d.setDate(d.getDate() + i);
+      return d.toISOString().split("T")[0];
+    });
+
+    setAvailableDays(days);
+  };
+
+  // updates timeslots based on start time selection and what is already reserved
+  const handleDayChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const day = e.target.value;
+    setSelectedDay(day);
+    setStartHour("");
+    setEndHour("");
+
+    const booth = booths.find((b) => b.id.toString() === selectedBooth);
+    if (!booth) return;
+
+    const allSlots = Array.from({ length: 8 }, (_, i) => 9 + i);
+
+    const reserved = booth.reservedSlots[day]?.flatMap((r: any) =>
+      Array.from({ length: r.duration }, (_, i) => r.start + i)
+    ) || [];
+
+    const freeSlots = allSlots.filter((hour) => !reserved.includes(hour));
+
+    setAvailableTimes(freeSlots.map((h) => `${h}:00`));
+  };
+
+  const handleSubmit = async () => {
+    if (!vendorId) {    // sanity check, will probably never be hit cause this page is restricted to vendors only
+      alert("You must be logged in to reserve a booth.");
+      return;
+    }
+    if (!selectedBooth || !selectedDay || !startHour || !endHour) return;
+
+    const start = parseInt(startHour);
+    const end = parseInt(endHour);
+
+    if (end <= start ) {
+      alert("Invalid time range!");
+      return;
+    }
+
+    const datetime = `${selectedDay}T${start.toString().padStart(2, "0")}:00:00`;
+    const duration = end - start;
+
+    const payload = {
+      vid: vendorId,
+      bid: Number(selectedBooth),
+      date: datetime,
+      duration: duration,
+    };
+
+    try {
+      await axios.post("http://localhost:3000/api/reservation", payload);
+      alert("Reservation added successfully!");
+      window.location.reload();
+    } catch (err) {
+      console.error("Error submitting reservation:", err);
+      alert("Error submitting reservation");
+    }
+  };
+
+  return (
+    <div className="vendor-page-container">
+      <div className="section">
+        <h2 className="section-title">Booth Reservation</h2>
+        <hr className="section-divider" />
+
+        {/* BOOTH SELECT */}
+        <label>
+          Select Booth
+          <select value={selectedBooth} onChange={handleBoothChange}>
+            <option value="">-- Choose Booth --</option>
+            {booths.map((b) => (
+              <option key={b.id} value={b.id}>
+                Booth {b.id} (x:{b.xcor}, y:{b.ycor})
+              </option>
+            ))}
+          </select>
+        </label>
+
+        {/* DAY SELECT */}
+        <label>
+          Select Day
+          <select
+            value={selectedDay}
+            onChange={handleDayChange}
+            disabled={!selectedBooth}
+          >
+            <option value="">-- Choose Day --</option>
+            {availableDays.map((day) => (
+              <option key={day} value={day}>
+                {day}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        {/* TIME RANGE SELECT */}
+        <label>
+          Start Hour
+          <select
+            value={startHour}
+            onChange={(e) => setStartHour(e.target.value)}
+            disabled={!selectedDay}
+          >
+            <option value="">-- Start Hour --</option>
+            {availableTimes.map((t) => (
+              <option key={t} value={t.split(":")[0]}>
+                {t}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label>
+          End Hour
+          <select
+            value={endHour}
+            onChange={(e) => setEndHour(e.target.value)}
+            disabled={!startHour}
+          >
+            <option value="">-- End Hour --</option>
+            {availableTimes.filter((t) => parseInt(t.split(":")[0]) > parseInt(startHour))
+                .map((t) => (
+                    <option key={t} value={t.split(":")[0]}>
+                        {t}
+                    </option>
+                ))}
+          </select>
+        </label>
+
+        <button
+          className="submit-button"
+          disabled={!startHour || !endHour}
+          onClick={handleSubmit}
+        >
+          Submit Reservation
+        </button>
+      </div>
+    </div>
+  );
 };
 
 export default VendorReservationPage;

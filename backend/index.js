@@ -50,6 +50,9 @@ db.connect((err) => {
   });
 });
 
+const dashboardRoutes = require('./routes/dashboardRoutes');
+
+app.use('/api/dashboard', dashboardRoutes(db));
 // Routes
 var routes = express.Router();
 app.use('/api', routes);
@@ -352,6 +355,25 @@ routes.post('/reservation', (req, res) => {
 
     res.status(201).json({ message: 'Reservation created successfully', id: results.insertId });
   });
+});
+
+// Get booth reservation for a vendor
+routes.get('/vendor/:vid/booth', (req, res) => {
+    db.query(`
+    SELECT b.*, r.date as reservationDate, r.duration 
+    FROM booth b
+    JOIN reservation r ON r.bid = b.id
+    WHERE r.vid = ?
+    ORDER BY r.date DESC
+    LIMIT 1
+  `, [req.params["vid"]], (err, results) => {
+        if (err) {
+            console.error('Error executing query: ' + err.stack);
+            res.status(500).send('Error fetching booth');
+            return;
+        }
+        res.json(results);
+    });
 });
 
 

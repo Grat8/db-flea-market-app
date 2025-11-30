@@ -9,7 +9,7 @@ export default function ProductDetails() {
     const [relatedProducts, setRelatedProducts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-
+    const [booth, setBooth] = useState(null);
     useEffect(() => {
         fetchProductData();
     }, [id]);
@@ -45,6 +45,12 @@ export default function ProductDetails() {
                         const filtered = relatedData.filter(p => p.id !== parseInt(id)).slice(0, 4);
                         setRelatedProducts(filtered);
                     }
+                }
+                // Fetch booth info
+                const boothResponse = await fetch(`http://localhost:3000/api/vendor/${prod.vid}/booth`);
+                if (boothResponse.ok) {
+                    const boothData = await boothResponse.json();
+                    setBooth(boothData[0] || null);
                 }
             }
 
@@ -138,8 +144,8 @@ export default function ProductDetails() {
                                 <span className="text-4xl font-bold text-gray-900">
                                     ${product.price ? parseFloat(product.price).toFixed(2) : '0.00'}
                                 </span>
-                                <span className={`text-sm ${product.stock > 5 ? 'text-green-600' : 'text-orange-600'}`}>
-                                    {product.stock > 0 ? `${product.stock} in stock` : 'Out of stock'}
+                                <span className={`text-sm ${product.count > 5 ? 'text-green-600' : 'text-orange-600'}`}>
+                                    {product.count > 0 ? `${product.count} in stock` : 'Out of stock'}
                                 </span>
                             </div>
 
@@ -201,17 +207,9 @@ export default function ProductDetails() {
                                 </div>
                                 <div>
                                     <p className="text-sm text-gray-500">Booth Number</p>
-                                    <p className="text-gray-900 font-medium">{vendor.boothNumber || 'N/A'}</p>
+                                    <p className="text-gray-900 font-medium">{booth ? `Booth #${booth.id}` : 'No booth assigned'}</p>
                                 </div>
-                                <div>
-                                    <p className="text-sm text-gray-500">Rating</p>
-                                    <div className="flex items-center">
-                                        <span className="text-gray-900 font-medium mr-2">
-                                            {vendor.rating || 'N/A'}
-                                        </span>
-                                        {vendor.rating && <span className="text-yellow-500">⭐</span>}
-                                    </div>
-                                </div>
+
                                 <div>
                                     <p className="text-sm text-gray-500">Email</p>
                                     <p className="text-gray-900 font-medium">{vendor.email || 'N/A'}</p>

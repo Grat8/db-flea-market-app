@@ -27,6 +27,7 @@ export default function Navbar() {
         {/* vendor logged in only */}
         {vendor && (
           <>
+            <a href="/stats" className="hover:text-blue-600">Dashboard</a>
             <a href="/booths" className="hover:text-blue-600">Booths</a>
             <a href="/reserve" className="hover:text-blue-600">Reserve Booth</a>
           </>

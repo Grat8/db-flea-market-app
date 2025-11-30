@@ -18,7 +18,7 @@ export default function VendorDetails() {
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-
+    const [booth, setBooth] = useState(null);
     useEffect(() => {
         fetchVendorData();
     }, [id]);
@@ -36,6 +36,14 @@ export default function VendorDetails() {
             const productsResponse = await fetch(`http://localhost:3000/api/vendor/${id}/product`);
             if (!productsResponse.ok) throw new Error('Failed to fetch products');
             const productsData = await productsResponse.json();
+
+            // Fetch booth info
+            const boothResponse = await fetch(`http://localhost:3000/api/vendor/${id}/booth`);
+            if (boothResponse.ok) {
+                const boothData = await boothResponse.json();
+                setBooth(boothData[0] || null);
+            }
+
 
             setVendor(vendorData[0]);
             setProducts(productsData);
@@ -110,7 +118,7 @@ export default function VendorDetails() {
                             </div>
                             <div>
                                 <p className="text-sm text-gray-500">Booth Number</p>
-                                <p className="text-gray-900 font-medium">{vendor.boothNumber || 'N/A'}</p>
+                                <p className="text-gray-900 font-medium"> {booth ? `Booth #${booth.id}` : 'No booth assigned'}</p>
                             </div>
                         </div>
 
@@ -170,7 +178,7 @@ export default function VendorDetails() {
                                         <td className="py-3 px-4 text-gray-900 font-medium">
                                             ${product.price ? parseFloat(product.price).toFixed(2) : '0.00'}
                                         </td>
-                                        <td className="py-3 px-4 text-gray-600">{product.stock || 0}</td>
+                                        <td className="py-3 px-4 text-gray-600">{product.count || 0}</td>
                                         <td className="py-3 px-4">
                                                 <span className={`text-xs px-2 py-1 rounded-full ${
                                                     product.condition === 'Excellent' ? 'bg-green-100 text-green-800' :

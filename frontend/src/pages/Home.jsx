@@ -96,29 +96,45 @@ export default function Home() {
             </select>
           </div>
         </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
+              {filtered.map((p) => (
+                  <div
+                      key={p.id}
+                      className="bg-white p-4 rounded-xl shadow hover:shadow-lg transition"
+                  >
+                      {/* Product name links to product details */}
+                      <Link to={`/product/${p.id}`}>
+                          <h4 className="font-semibold text-lg hover:text-blue-600 cursor-pointer">
+                              {p.name}
+                          </h4>
+                      </Link>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
-          {filtered.map((p) => (
-            <div
-              key={p.id}
-              className="bg-white p-4 rounded-xl shadow hover:shadow-lg transition"
-            >
-              <h4 className="font-semibold text-lg">{p.name}</h4>
-              <div className="mt-2">
-                <p> Image</p>
-                <p> Price: ${p.price}</p>
-                <p>Qty: {p.qty}</p>
-              </div>
+                      <div className="mt-2">
+                          <p> Image</p>
+                          <p> Price: ${p.price}</p>
+                          <p>Qty: {p.count || p.qty || 0}</p>
+                      </div>
 
-              <Link
-                to={`/vendor/${p.vid}`}
-                className="block mt-4 text-center bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600"
-              >
-                Vendor Details
-              </Link>
-            </div>
-          ))}
-        </div>
+                      <div className="flex flex-col space-y-2 mt-4">
+                          {/* View Product Details Button */}
+                          <Link
+                              to={`/product/${p.id}`}
+                              className="text-center bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600"
+                          >
+                              View Product
+                          </Link>
+
+                          {/* Vendor Details Button - Secondary */}
+                          <Link
+                              to={`/vendor/${p.vid}`}
+                              className="text-center bg-white text-blue-500 border border-blue-500 py-2 rounded-lg hover:bg-blue-50"
+                          >
+                              View Vendor
+                          </Link>
+                      </div>
+                  </div>
+              ))}
+          </div>
       </div>
 
 

@@ -9,6 +9,10 @@ const PORT = process.env.PORT || 3000;
 app.use((req, res, next) => {
     res.header('Access-Control-Allow-Origin', '*');
     res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    if (req.method === 'OPTIONS') {
+        return res.sendStatus(200);
+    }
     next();
 });
 // Middleware
@@ -83,6 +87,58 @@ routes.get('/vendor/:vid', (req, res) => {
   });
 });
 
+// PUT /api/vendor/:vid - update vendor details (name, phone, email, description, owner, logo)
+routes.put('/vendor/:vid', (req, res) => {
+  const vid = req.params.vid;
+  const { name, phone, email, description, owner, logo } = req.body;
+
+  if (!name) return res.status(400).json({ error: 'name is required' });
+
+  const sql = 'UPDATE vendor SET name = ?, phone = ?, email = ?, description = ?, owner = ?, logo = ? WHERE id = ?';
+  db.query(sql, [name, phone || '', email || '', description || '', owner || '', logo || null, vid], (err, result) => {
+    if (err) {
+      console.error('Error updating vendor:', err);
+      return res.status(500).json({ error: 'Error updating vendor' });
+    }
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Vendor not found' });
+    }
+    // Fetch and return updated vendor
+    db.query('SELECT * FROM vendor WHERE id = ?', [vid], (fErr, rows) => {
+      if (fErr) {
+        console.error('Error fetching updated vendor:', fErr);
+        return res.status(500).json({ error: 'Error fetching updated vendor' });
+      }
+      return res.json({ message: 'Vendor updated', vendor: rows[0] });
+    });
+  });
+});
+
+// DELETE /api/vendor/:vid - delete vendor account (removes from vendor and vendor_auth)
+routes.delete('/vendor/:vid', (req, res) => {
+  const vid = req.params.vid;
+
+  // First delete vendor_auth records for this vendor
+  db.query('DELETE FROM vendor_auth WHERE vendor_id = ?', [vid], (authErr) => {
+    if (authErr) {
+      console.error('Error deleting vendor_auth:', authErr);
+      return res.status(500).json({ error: 'Error deleting vendor account' });
+    }
+
+    // Then delete the vendor (cascade may handle products/reservations depending on DB setup)
+    db.query('DELETE FROM vendor WHERE id = ?', [vid], (vendorErr, result) => {
+      if (vendorErr) {
+        console.error('Error deleting vendor:', vendorErr);
+        return res.status(500).json({ error: 'Error deleting vendor account' });
+      }
+      if (result.affectedRows === 0) {
+        return res.status(404).json({ error: 'Vendor not found' });
+      }
+      return res.json({ message: 'Vendor account deleted' });
+    });
+  });
+});
+
 routes.get('/vendor/:vid/product', (req, res) => {
   db.query(`SELECT * FROM product where vid = ${req.params["vid"]}`, (err, results) => {
     if (err) {
@@ -91,6 +147,68 @@ routes.get('/vendor/:vid/product', (req, res) => {
       return;
     }
     res.json(results);
+  });
+});
+
+// POST /api/vendor/:vid/product - create a new product for vendor
+routes.post('/vendor/:vid/product', (req, res) => {
+  const vid = req.params.vid;
+  const { name, description, count, price } = req.body;
+
+  if (!name) return res.status(400).json({ error: 'name is required' });
+
+  const sql = 'INSERT INTO product (name, description, count, price, vid) VALUES (?, ?, ?, ?, ?)';
+  db.query(sql, [name, description || '', count || 0, price || 0, vid], (err, result) => {
+    if (err) {
+      console.error('Error inserting product:', err);
+      return res.status(500).json({ error: 'Error creating product' });
+    }
+    // return the newly created product
+    db.query('SELECT * FROM product WHERE id = ?', [result.insertId], (fErr, rows) => {
+      if (fErr) {
+        console.error('Error fetching new product:', fErr);
+        return res.status(500).json({ error: 'Error fetching new product' });
+      }
+      return res.status(201).json({ message: 'Product created', product: rows[0] });
+    });
+  });
+});
+
+// PUT /api/product/:pid - update product
+routes.put('/product/:pid', (req, res) => {
+  const pid = req.params.pid;
+  const { name, description, count, price } = req.body;
+
+  if (!name) return res.status(400).json({ error: 'name is required' });
+
+  const sql = 'UPDATE product SET name = ?, description = ?, count = ?, price = ? WHERE id = ?';
+  db.query(sql, [name, description || '', count || 0, price || 0, pid], (err, result) => {
+    if (err) {
+      console.error('Error updating product:', err);
+      return res.status(500).json({ error: 'Error updating product' });
+    }
+    if (result.affectedRows === 0) return res.status(404).json({ error: 'Product not found' });
+
+    db.query('SELECT * FROM product WHERE id = ?', [pid], (fErr, rows) => {
+      if (fErr) {
+        console.error('Error fetching updated product:', fErr);
+        return res.status(500).json({ error: 'Error fetching updated product' });
+      }
+      return res.json({ message: 'Product updated', product: rows[0] });
+    });
+  });
+});
+
+// DELETE /api/product/:pid - delete a product
+routes.delete('/product/:pid', (req, res) => {
+  const pid = req.params.pid;
+  db.query('DELETE FROM product WHERE id = ?', [pid], (err, result) => {
+    if (err) {
+      console.error('Error deleting product:', err);
+      return res.status(500).json({ error: 'Error deleting product' });
+    }
+    if (result.affectedRows === 0) return res.status(404).json({ error: 'Product not found' });
+    return res.json({ message: 'Product deleted' });
   });
 });
 
@@ -251,6 +369,62 @@ routes.post('/vendor/login', (req, res) => {
     });
   });
 });
+
+  // Vendor forgot-password: verify vendor details and set a new hashed password
+  routes.post('/vendor/forgot-password', (req, res) => {
+    const { email, phone, owner, newPassword } = req.body;
+
+    if (!email || !newPassword) return res.status(400).json({ error: 'email and newPassword are required' });
+
+    // Find vendor by provided details
+    db.query('SELECT * FROM vendor WHERE email = ? AND phone = ? AND owner = ?', [email, phone || '', owner || ''], (err, rows) => {
+      if (err) {
+        console.error('Error querying vendor for forgot-password:', err);
+        return res.status(500).json({ error: 'Server error' });
+      }
+
+      if (!rows || rows.length === 0) {
+        return res.status(404).json({ error: 'Vendor not found or details do not match' });
+      }
+
+      const vendor = rows[0];
+
+      // Hash new password
+      bcrypt.hash(newPassword, 10, (hashErr, hashed) => {
+        if (hashErr) {
+          console.error('Error hashing new password:', hashErr);
+          return res.status(500).json({ error: 'Server error' });
+        }
+
+        // Upsert into vendor_auth: if auth exists update, otherwise insert
+        db.query('SELECT * FROM vendor_auth WHERE vendor_id = ?', [vendor.id], (aErr, aRows) => {
+          if (aErr) {
+            console.error('Error querying vendor_auth for forgot-password:', aErr);
+            return res.status(500).json({ error: 'Server error' });
+          }
+
+          if (aRows && aRows.length > 0) {
+            db.query('UPDATE vendor_auth SET password = ? WHERE vendor_id = ?', [hashed, vendor.id], (uErr) => {
+              if (uErr) {
+                console.error('Error updating vendor_auth password:', uErr);
+                return res.status(500).json({ error: 'Server error' });
+              }
+              return res.json({ message: 'Password updated' });
+            });
+          } else {
+            // create auth record
+            db.query('INSERT INTO vendor_auth (vendor_id, email, password) VALUES (?, ?, ?)', [vendor.id, email, hashed], (iErr) => {
+              if (iErr) {
+                console.error('Error inserting vendor_auth for forgot-password:', iErr);
+                return res.status(500).json({ error: 'Server error' });
+              }
+              return res.json({ message: 'Password set' });
+            });
+          }
+        });
+      });
+    });
+  });
 
 // GET /api/product - return paginated products and total count
 routes.get('/product', (req, res) => {

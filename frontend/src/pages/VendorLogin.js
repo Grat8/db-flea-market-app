@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
-import {Link,  useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 
 export default function VendorLogin() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [msg, setMsg] = useState("");
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     const vendor = localStorage.getItem("vendor");
@@ -14,6 +15,15 @@ export default function VendorLogin() {
       navigate(`/vendor/${vendor_id}`);
     }
   }, [navigate]);
+
+  // if redirected from forgot-password page, show success message and optionally prefill email
+  useEffect(() => {
+    if (location?.state) {
+      const { successMessage, email: prefillEmail } = location.state;
+      if (successMessage) setMsg(successMessage);
+      if (prefillEmail) setEmail(prefillEmail);
+    }
+  }, [location]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -31,7 +41,7 @@ export default function VendorLogin() {
       window.dispatchEvent(new Event("storage"));  // auto-updates navbar
       navigate(`/vendor/${data.vendor_id}`);
     } else {
-      setMsg(data.error);
+      setMsg(data.error || 'Login failed');
     }
   };
 
@@ -54,12 +64,16 @@ export default function VendorLogin() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
-          <Link to="/register" className="text-sm text-blue-600 hover:underline">New to the system Register Here?</Link>
+          <div className="flex items-center justify-between mb-3">
+            <Link to="/register" className="text-sm text-blue-600 hover:underline">New to the system? Register here</Link>
+            <Link to="/forgot-password" className="text-sm text-red-600 hover:underline">Forgot password?</Link>
+          </div>
         <button className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">
           Login
         </button>
 
         {msg && <p className="mt-3 text-center text-sm text-red-500">{msg}</p>}
+        {/* forgot-password handled on its own page */}
       </form>
     </div>
   );

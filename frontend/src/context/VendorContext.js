@@ -3,19 +3,18 @@ import { createContext, useState, useContext, useEffect } from 'react';
 const VendorContext = createContext();
 
 export const VendorProvider = ({ children }) => {
-  const [loggedInVendor, setLoggedInVendor] = useState(null);
 
-  // Load from localStorage on mount
-  useEffect(() => {
-    const stored = localStorage.getItem('vendor');
-    if (stored) {
-      try {
-        setLoggedInVendor(JSON.parse(stored));
-      } catch (e) {
-        console.error('Error parsing stored vendor:', e);
+    const [loggedInVendor, setLoggedInVendor] = useState(() => {
+      const stored = localStorage.getItem('vendor');
+      if (stored) {
+        try {
+          return JSON.parse(stored);
+        } catch (e) {
+          console.error('Error parsing stored vendor:', e);
+        }
       }
-    }
-  }, []);
+      return null;
+    });
 
   // Save to localStorage whenever it changes
   useEffect(() => {

@@ -99,7 +99,7 @@ export default function Home() {
               {products.map((p) => (
                   <div
                       key={p.id}
-                      className="bg-white p-4 rounded-xl shadow hover:shadow-lg transition"
+                      className="flex flex-col bg-white p-4 rounded-xl shadow hover:shadow-lg transition"
                   >
                       {/* Product name links to product details */}
                       <Link to={`/product/${p.id}`}>
@@ -109,12 +109,12 @@ export default function Home() {
                       </Link>
 
                       <div className="mt-2">
-                          <p className="text-gray-500"> {p.description}</p>
+                          <p className="text-gray-500 mb-1"> {p.description}</p>
                           <p> Price: ${p.price}</p>
                           <p>Qty: {p.count || 0}</p>
                       </div>
 
-                      <div className="flex flex-col space-y-2 mt-4">
+                      <div className="flex flex-col space-y-2 mt-4 grow justify-end">
                           {/* View Product Details Button */}
                           <Link
                               to={`/product/${p.id}`}

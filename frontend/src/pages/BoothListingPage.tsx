@@ -8,7 +8,8 @@ export default function BoothListingPage() {
   const navigate = useNavigate(); // for navigating to reservations page
 
   const [booths, setBooths] = useState<any[]>([]);
-  const [selectedDay, setSelectedDay] = useState("");
+  const tdate = new Date();
+  const [selectedDay, setSelectedDay] = useState(`${tdate.getFullYear()}-${String(tdate.getMonth() + 1).padStart(2, '0')}-${String(tdate.getDate()).padStart(2, '0')}`);
   const [selectedHour, setSelectedHour] = useState("");
 
   const containerSize = 400; // map size
@@ -62,7 +63,6 @@ export default function BoothListingPage() {
         console.error("Error loading booths:", err);
       }
     };
-
     loadBooths();
   }, []);
 

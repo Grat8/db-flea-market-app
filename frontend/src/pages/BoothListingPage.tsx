@@ -8,7 +8,8 @@ export default function BoothListingPage() {
   const navigate = useNavigate(); // for navigating to reservations page
 
   const [booths, setBooths] = useState<any[]>([]);
-  const [selectedDay, setSelectedDay] = useState("");
+  const tdate = new Date();
+  const [selectedDay, setSelectedDay] = useState(`${tdate.getFullYear()}-${String(tdate.getMonth() + 1).padStart(2, '0')}-${String(tdate.getDate()).padStart(2, '0')}`);
   const [selectedHour, setSelectedHour] = useState("");
 
   const containerSize = 400; // map size
@@ -62,7 +63,6 @@ export default function BoothListingPage() {
         console.error("Error loading booths:", err);
       }
     };
-
     loadBooths();
   }, []);
 
@@ -73,7 +73,7 @@ export default function BoothListingPage() {
   const scaleY = containerSize / (maxY + 5);
   const SCALE = Math.min(scaleX, scaleY);
 
-  const hours = Array.from({ length: 8 }, (_, i) => 9 + i); // market open from 9am-4pm (9-16 military time used)
+  const hours = Array.from({ length: 9 }, (_, i) => 7 + i); // market open from 7am-4pm (7-16 military time used)
 
   const hoursToRange = (hours: number[]) => {
     if (!hours || hours.length === 0) return "";

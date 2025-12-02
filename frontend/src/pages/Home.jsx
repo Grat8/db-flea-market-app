@@ -137,7 +137,7 @@ export default function Home() {
       </div>
 
       <footer className="text-center text-sm text-gray-600 pb-4 mt-32">
-        © Virginia Tech CS 5614
+        Open 7am - 4pm Everyday | © Virginia Tech CS 5614
       </footer>
     </div>
   );

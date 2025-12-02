@@ -84,7 +84,7 @@ const VendorReservationPage: React.FC = () => {
     const booth = booths.find((b) => b.id.toString() === selectedBooth);
     if (!booth) return;
 
-    const allSlots = Array.from({ length: 8 }, (_, i) => 9 + i);
+    const allSlots = Array.from({ length: 9 }, (_, i) => 7 + i);
 
     const reserved = booth.reservedSlots[day]?.flatMap((r: any) =>
       Array.from({ length: r.duration }, (_, i) => r.start + i)
@@ -191,10 +191,17 @@ const VendorReservationPage: React.FC = () => {
             disabled={!startHour}
           >
             <option value="">-- End Hour --</option>
-            {availableTimes.filter((t) => parseInt(t.split(":")[0]) > parseInt(startHour))
-                .map((t) => (
-                    <option key={t} value={t.split(":")[0]}>
-                        {t}
+            {Array.from({ length: 10 }, (_, i) => 7 + i).filter((num) => {
+              for (let i = parseInt(startHour); i < num; i++) {
+                if (!availableTimes.includes(`${i}:00`)) {
+                  return false;
+                }
+              }
+
+              return num > parseInt(startHour);
+            }).map((t) => (
+                    <option key={t} value={t}>
+                        {t}:00
                     </option>
                 ))}
           </select>

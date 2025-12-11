@@ -14,8 +14,7 @@ CREATE TABLE IF NOT EXISTS vendor_auth (
     email VARCHAR(255) UNIQUE NOT NULL,
     password VARCHAR(255) NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-
-    FOREIGN KEY (vendor_id) REFERENCES vendor(id)
+    FOREIGN KEY (vendor_id) REFERENCES Vendor(id)
 );
 
 CREATE TABLE Product (

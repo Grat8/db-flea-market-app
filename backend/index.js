@@ -80,6 +80,15 @@ let db;
   }
 })();
 
+// TESTING: List all tables
+db.query('SHOW TABLES', (err, results) => {
+  if (err) {
+    console.error('Error listing tables:', err);
+  } else {
+    console.log('Tables in current database:');
+    results.forEach(row => console.log(row));
+  }
+});
 
 const dashboardRoutes = require('./routes/dashboardRoutes');
 

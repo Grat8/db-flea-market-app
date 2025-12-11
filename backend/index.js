@@ -38,6 +38,20 @@ let db;
     db = await mysql.createConnection(dbConfig);
     console.log('Connected to MySQL');
 
+    // DEBUG START
+    (async () => {
+      try {
+        const [tables] = await db.query('SHOW TABLES');
+        console.log('Tables in DB:', tables);
+
+        const [vendors] = await db.query('SELECT * FROM vendor LIMIT 5');
+        console.log('Sample vendors:', vendors);
+      } catch (err) {
+        console.error('Debug query error:', err);
+      }
+    })();
+    // DEBUG END
+
     // Automatically run all SQL seed files
     const seedDir = path.join(__dirname, 'sql/seed');
     if (fs.existsSync(seedDir)) {
@@ -80,21 +94,21 @@ let db;
   }
 })();
 
-// TESTING: debug
-async function debugTables() {
-  try {
-    const [dbName] = await db.query('SELECT DATABASE() AS currentDB');
-    console.log('Connected to database:', dbName[0].currentDB);
+// // TESTING: debug
+// async function debugTables() {
+//   try {
+//     const [dbName] = await db.query('SELECT DATABASE() AS currentDB');
+//     console.log('Connected to database:', dbName[0].currentDB);
 
-    const [tables] = await db.query('SHOW TABLES');
-    console.log('Tables in current database:');
-    tables.forEach(row => console.log(row));
-  } catch (err) {
-    console.error('SQL debug error:', err);
-  }
-}
+//     const [tables] = await db.query('SHOW TABLES');
+//     console.log('Tables in current database:');
+//     tables.forEach(row => console.log(row));
+//   } catch (err) {
+//     console.error('SQL debug error:', err);
+//   }
+// }
 
-debugTables();
+// debugTables();
 
 
 const dashboardRoutes = require('./routes/dashboardRoutes');

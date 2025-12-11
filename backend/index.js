@@ -38,6 +38,10 @@ let db;
     db = await mysql.createConnection(dbConfig);
     console.log('Connected to MySQL');
 
+    const dashboardRoutes = require('./routes/dashboardRoutes');
+
+    app.use('/api/dashboard', dashboardRoutes(db));
+
     // DEBUG START
     (async () => {
       try {
@@ -111,9 +115,9 @@ let db;
 // debugTables();
 
 
-const dashboardRoutes = require('./routes/dashboardRoutes');
+// const dashboardRoutes = require('./routes/dashboardRoutes');
 
-app.use('/api/dashboard', dashboardRoutes(db));
+// app.use('/api/dashboard', dashboardRoutes(db));
 // Routes
 var routes = express.Router();
 app.use('/api', routes);

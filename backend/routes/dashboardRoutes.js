@@ -1,7 +1,7 @@
-const express = require('express');
-const router = express.Router();
-
 module.exports = (db) => {
+
+    const express = require('express');
+    const router = express.Router();
 
     // Vendor Dashboard Stats
     router.get('/:vid/stats', async (req, res) => {

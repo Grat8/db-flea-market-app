@@ -30,10 +30,11 @@ const dbConfig = {
   port: process.env.DB_PORT || 3306,
 };
 
+let db;
 // Async IIFE to connect and seed DB
 (async () => {
   try {
-    const db = await mysql.createConnection(dbConfig);
+    db = await mysql.createConnection(dbConfig);
     console.log('Connected to MySQL');
 
     // Automatically run all SQL seed files

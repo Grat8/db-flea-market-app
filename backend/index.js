@@ -28,6 +28,7 @@ const dbConfig = {
   password: process.env.DB_PASSWORD || 'rootpass',
   database: process.env.DB_NAME || 'db',
   port: process.env.DB_PORT || 3306,
+  multipleStatements: true
 };
 
 let db;

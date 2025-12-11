@@ -19,7 +19,7 @@ export default function ProductDetails() {
             setLoading(true);
 
             // Fetch product info
-            const productResponse = await fetch(`http://localhost:3000/api/product/${id}`);
+            const productResponse = await fetch(`https://db-flea-market-app.onrender.com/api/product/${id}`);
             if (!productResponse.ok) throw new Error('Failed to fetch product');
             const productData = await productResponse.json();
             const prod = productData[0];
@@ -32,13 +32,13 @@ export default function ProductDetails() {
 
             // Fetch vendor info
             if (prod.vid) {
-                const vendorResponse = await fetch(`http://localhost:3000/api/vendor/${prod.vid}`);
+                const vendorResponse = await fetch(`https://db-flea-market-app.onrender.com/api/vendor/${prod.vid}`);
                 if (vendorResponse.ok) {
                     const vendorData = await vendorResponse.json();
                     setVendor(vendorData[0]);
 
                     // Fetch related products from same vendor
-                    const relatedResponse = await fetch(`http://localhost:3000/api/vendor/${prod.vid}/product`);
+                    const relatedResponse = await fetch(`https://db-flea-market-app.onrender.com/api/vendor/${prod.vid}/product`);
                     if (relatedResponse.ok) {
                         const relatedData = await relatedResponse.json();
                         // Filter out current product and limit to 4
@@ -47,7 +47,7 @@ export default function ProductDetails() {
                     }
                 }
                 // Fetch booth info
-                const boothResponse = await fetch(`http://localhost:3000/api/vendor/${prod.vid}/booth`);
+                const boothResponse = await fetch(`https://db-flea-market-app.onrender.com/api/vendor/${prod.vid}/booth`);
                 if (boothResponse.ok) {
                     const boothData = await boothResponse.json();
                     setBooth(boothData[0] || null);

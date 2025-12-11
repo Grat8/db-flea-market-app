@@ -15,7 +15,7 @@ export default function Home() {
   const fetchProducts = async () => {
     try {
       // fetch paginated products from the API endpoint
-      const res = await fetch(`http://localhost:3000/api/product?page=${page}&limit=${limit}&search=${encodeURIComponent(search)}`);
+      const res = await fetch(`https://db-flea-market-app.onrender.com/api/product?page=${page}&limit=${limit}&search=${encodeURIComponent(search)}`);
       const data = await res.json();
       // server returns { products, total }
       setProducts(data.products || []);

@@ -1,58 +1,83 @@
 const express = require('express');
-const mysql = require('mysql2');
+const mysql = require('mysql2/promise'); // use promise-based API
 const bcrypt = require('bcrypt');
 const bodyParser = require('body-parser');
+const fs = require('fs');
+const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use((req, res, next) => {
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    if (req.method === 'OPTIONS') {
-        return res.sendStatus(200);
-    }
-    next();
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  next();
 });
+
 // Middleware
 app.use(bodyParser.json());
 
-// MySQL Connection
-const db = mysql.createConnection({
-  host: 'localhost',
-  user: 'root',
-  password: 'rootpass',
-  database: 'db'
-});
+// MySQL Connection using env variables
+const dbConfig = {
+  host: process.env.DB_HOST || 'localhost',
+  user: process.env.DB_USER || 'root',
+  password: process.env.DB_PASSWORD || 'rootpass',
+  database: process.env.DB_NAME || 'db',
+  port: process.env.DB_PORT || 3306,
+};
 
-// Connect to MySQL
-db.connect((err) => {
-  if (err) {
-    console.error('Error connecting to MySQL: ' + err.stack);
-    return;
-  }
-  console.log('Connected to MySQL as ID ' + db.threadId);
-  // Ensure vendor_auth table exists (create if missing)
-  const createVendorAuthSql = `
-    CREATE TABLE IF NOT EXISTS vendor_auth (
-      id INT AUTO_INCREMENT PRIMARY KEY,
-      vendor_id INT NOT NULL,
-      email VARCHAR(255) UNIQUE NOT NULL,
-      password VARCHAR(255) NOT NULL,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (vendor_id) REFERENCES vendor(id)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-  `;
+// Async IIFE to connect and seed DB
+(async () => {
+  try {
+    const db = await mysql.createConnection(dbConfig);
+    console.log('Connected to MySQL');
 
-  db.query(createVendorAuthSql, (createErr) => {
-    if (createErr) {
-      console.error('Error creating vendor_auth table (if missing):', createErr);
-    } else {
-      console.log('Ensured vendor_auth table exists');
+    // Automatically run all SQL seed files
+    const seedDir = path.join(__dirname, 'sql/seed');
+    if (fs.existsSync(seedDir)) {
+      const files = fs.readdirSync(seedDir).sort(); // ensures order
+      for (const file of files) {
+        if (file.endsWith('.sql')) {
+          const sql = fs.readFileSync(path.join(seedDir, file), 'utf8');
+          await db.query(sql);
+          console.log(`Executed seed file: ${file}`);
+        }
+      }
+      console.log('All seed files executed');
     }
-  });
-});
+
+    // Example: ensure vendor_auth table exists (optional, can remove if included in seeds)
+    const createVendorAuthSql = `
+      CREATE TABLE IF NOT EXISTS vendor_auth (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        vendor_id INT NOT NULL,
+        email VARCHAR(255) UNIQUE NOT NULL,
+        password VARCHAR(255) NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (vendor_id) REFERENCES vendor(id)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    `;
+    await db.query(createVendorAuthSql);
+    console.log('Ensured vendor_auth table exists');
+
+    // Make db connection globally accessible if needed
+    app.locals.db = db;
+
+    // Start server
+    app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+    });
+
+  } catch (err) {
+    console.error('Error connecting to MySQL or running seeds:', err);
+    process.exit(1); // stop server if DB fails
+  }
+})();
+
 
 const dashboardRoutes = require('./routes/dashboardRoutes');
 

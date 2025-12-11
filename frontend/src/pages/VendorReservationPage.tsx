@@ -18,7 +18,7 @@ const VendorReservationPage: React.FC = () => {
   useEffect(() => {
     const fetchBooths = async () => {
       try {
-        const boothRes = await axios.get("http://localhost:3000/api/booth");
+        const boothRes = await axios.get("https://db-flea-market-app.onrender.com/api/booth");
         setBooths(boothRes.data);
       } catch (err) {
         console.error("Error fetching booths:", err);
@@ -58,7 +58,7 @@ const VendorReservationPage: React.FC = () => {
     let dayReservations = [];
     try {
       const res = await axios.get(
-        `http://localhost:3000/api/booth/${selectedBooth}/reservation`,
+        `https://db-flea-market-app.onrender.com/api/booth/${selectedBooth}/reservation`,
         { params: { day } }
       );
       dayReservations = res.data;
@@ -107,7 +107,7 @@ const VendorReservationPage: React.FC = () => {
     };
 
     try {
-      await axios.post("http://localhost:3000/api/reservation", payload);
+      await axios.post("https://db-flea-market-app.onrender.com/api/reservation", payload);
       alert("Reservation added successfully!");
       window.location.reload();
     } catch (err) {

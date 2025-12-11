@@ -21,7 +21,7 @@ export default function ForgotPassword() {
 
     setLoading(true);
     try {
-      const res = await fetch('http://localhost:3000/api/vendor/forgot-password', {
+      const res = await fetch('https://db-flea-market-app.onrender.com/api/vendor/forgot-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: email.trim(), phone: phone.trim(), owner: owner.trim(), newPassword }),

@@ -34,7 +34,7 @@ export default function VendorDetails() {
         setEditMsg(null);
 
         try {
-            const res = await fetch(`http://localhost:3000/api/vendor/${id}`, {
+            const res = await fetch(`https://db-flea-market-app.onrender.com/api/vendor/${id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(editData),
@@ -58,7 +58,7 @@ export default function VendorDetails() {
         if (!window.confirm('Are you sure you want to delete your account? This action cannot be undone.')) return;
 
         try {
-            const res = await fetch(`http://localhost:3000/api/vendor/${id}`, { method: 'DELETE' });
+            const res = await fetch(`https://db-flea-market-app.onrender.com/api/vendor/${id}`, { method: 'DELETE' });
             const json = await res.json();
             if (!res.ok) {
                 setEditMsg(json.error || 'Failed to delete');
@@ -93,17 +93,17 @@ export default function VendorDetails() {
             setLoading(true);
 
             // Fetch vendor info
-            const vendorResponse = await fetch(`http://localhost:3000/api/vendor/${id}`);
+            const vendorResponse = await fetch(`https://db-flea-market-app.onrender.com/api/vendor/${id}`);
             if (!vendorResponse.ok) throw new Error('Failed to fetch vendor');
             const vendorData = await vendorResponse.json();
 
             // Fetch vendor products
-            const productsResponse = await fetch(`http://localhost:3000/api/vendor/${id}/product`);
+            const productsResponse = await fetch(`https://db-flea-market-app.onrender.com/api/vendor/${id}/product`);
             if (!productsResponse.ok) throw new Error('Failed to fetch products');
             const productsData = await productsResponse.json();
 
             // Fetch booth info
-            const boothResponse = await fetch(`http://localhost:3000/api/vendor/${id}/booth`);
+            const boothResponse = await fetch(`https://db-flea-market-app.onrender.com/api/vendor/${id}/booth`);
             if (boothResponse.ok) {
                 const boothData = await boothResponse.json();
                 setBooth(boothData[0] || null);
@@ -242,7 +242,7 @@ export default function VendorDetails() {
                                 <button onClick={async () => {
                                     setProductMsg(null);
                                     try {
-                                        const res = await fetch(`http://localhost:3000/api/vendor/${id}/product`, {
+                                        const res = await fetch(`https://db-flea-market-app.onrender.com/api/vendor/${id}/product`, {
                                             method: 'POST',
                                             headers: { 'Content-Type': 'application/json' },
                                             body: JSON.stringify({ ...newProduct })
@@ -280,7 +280,7 @@ export default function VendorDetails() {
                                 <button onClick={async () => {
                                     setProductMsg(null);
                                     try {
-                                        const res = await fetch(`http://localhost:3000/api/product/${editingProductId}`, {
+                                        const res = await fetch(`https://db-flea-market-app.onrender.com/api/product/${editingProductId}`, {
                                             method: 'PUT',
                                             headers: { 'Content-Type': 'application/json' },
                                             body: JSON.stringify(editProductData)
@@ -342,7 +342,7 @@ export default function VendorDetails() {
                                                     <button onClick={async () => {
                                                         if (!window.confirm('Delete this product?')) return;
                                                         try {
-                                                            const res = await fetch(`http://localhost:3000/api/product/${product.id}`, { method: 'DELETE' });
+                                                            const res = await fetch(`https://db-flea-market-app.onrender.com/api/product/${product.id}`, { method: 'DELETE' });
                                                             const json = await res.json();
                                                             if (!res.ok) {
                                                                 setProductMsg(json.error || 'Failed to delete product');

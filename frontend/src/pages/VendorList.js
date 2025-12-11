@@ -10,7 +10,6 @@ export default function VendorList() {
     const fetchVendors = async () => {
       try {
         setLoading(true);
-        console.log('${process.env.REACT_APP_API_URL}/vendor');
         const res = await fetch("https://db-flea-market-app.onrender.com/api/vendor");
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();

@@ -25,7 +25,7 @@ export default function VendorRegistration() {
 
     setLoading(true);
     try {
-      const res = await fetch("http://localhost:3000/api/vendor/register", {
+      const res = await fetch("https://db-flea-market-app.onrender.com/api/vendor/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

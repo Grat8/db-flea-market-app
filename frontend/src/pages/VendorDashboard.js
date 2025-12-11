@@ -21,10 +21,10 @@ export default function VendorDashboard() {
 
             // Fetch all dashboard data
             const [statsRes, salesRes, productsRes, monthlyRes] = await Promise.all([
-                fetch(`http://localhost:3000/api/dashboard/${vendorId}/stats`),
-                fetch(`http://localhost:3000/api/dashboard/${vendorId}/recent-sales`),
-                fetch(`http://localhost:3000/api/dashboard/${vendorId}/top-products`),
-                fetch(`http://localhost:3000/api/dashboard/${vendorId}/monthly-sales`)
+                fetch(`https://db-flea-market-app.onrender.com/api/dashboard/${vendorId}/stats`),
+                fetch(`https://db-flea-market-app.onrender.com/api/dashboard/${vendorId}/recent-sales`),
+                fetch(`https://db-flea-market-app.onrender.com/api/dashboard/${vendorId}/top-products`),
+                fetch(`https://db-flea-market-app.onrender.com/api/dashboard/${vendorId}/monthly-sales`)
             ]);
 
             if (!statsRes.ok || !salesRes.ok || !productsRes.ok || !monthlyRes.ok) {

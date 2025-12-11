@@ -88,535 +88,432 @@ app.use('/api/dashboard', dashboardRoutes(db));
 var routes = express.Router();
 app.use('/api', routes);
 
-routes.get('/', (req, res) => {
+routes.get('/', async (req, res) => {
   res.send('Welcome to the DB Market API');
 });
 
-routes.get('/vendor', (req, res) => {
-  db.query(`SELECT * FROM vendor`, (err, results) => {
-    if (err) {
-      console.error('Error executing query: ' + err.stack);
-      res.status(500).send('Error fetching vendors');
-      return;
-    }
+routes.get('/vendor', async (req, res) => {
+  try {
+    const [results] = await db.query('SELECT * FROM vendor');
     res.json(results);
-  });
+  } catch (err) {
+    console.error('Error fetching vendors:', err);
+    res.status(500).send('Error fetching vendors');
+  }
 });
 
-routes.get('/vendor/:vid', (req, res) => {
-  db.query(`SELECT * FROM vendor where id = ${req.params["vid"]}`, (err, results) => {
-    if (err) {
-      console.error('Error executing query: ' + err.stack);
-      res.status(500).send('Error fetching vendors');
-      return;
-    }
+routes.get('/vendor/:vid', async (req, res) => {
+  try {
+    const [results] = await db.query('SELECT * FROM vendor WHERE id = ?', [req.params.vid]);
     res.json(results);
-  });
+  } catch (err) {
+    console.error('Error fetching vendor:', err);
+    res.status(500).send('Error fetching vendor');
+  }
 });
 
-// PUT /api/vendor/:vid - update vendor details (name, phone, email, description, owner, logo)
-routes.put('/vendor/:vid', (req, res) => {
+routes.put('/vendor/:vid', async (req, res) => {
   const vid = req.params.vid;
   const { name, phone, email, description, owner, logo } = req.body;
 
   if (!name) return res.status(400).json({ error: 'name is required' });
 
-  const sql = 'UPDATE vendor SET name = ?, phone = ?, email = ?, description = ?, owner = ?, logo = ? WHERE id = ?';
-  db.query(sql, [name, phone || '', email || '', description || '', owner || '', logo || null, vid], (err, result) => {
-    if (err) {
-      console.error('Error updating vendor:', err);
-      return res.status(500).json({ error: 'Error updating vendor' });
-    }
+  try {
+    const [result] = await db.query(
+      'UPDATE vendor SET name = ?, phone = ?, email = ?, description = ?, owner = ?, logo = ? WHERE id = ?',
+      [name, phone || '', email || '', description || '', owner || '', logo || null, vid]
+    );
+
     if (result.affectedRows === 0) {
       return res.status(404).json({ error: 'Vendor not found' });
     }
-    // Fetch and return updated vendor
-    db.query('SELECT * FROM vendor WHERE id = ?', [vid], (fErr, rows) => {
-      if (fErr) {
-        console.error('Error fetching updated vendor:', fErr);
-        return res.status(500).json({ error: 'Error fetching updated vendor' });
-      }
-      return res.json({ message: 'Vendor updated', vendor: rows[0] });
-    });
-  });
+
+    const [rows] = await db.query('SELECT * FROM vendor WHERE id = ?', [vid]);
+    return res.json({ message: 'Vendor updated', vendor: rows[0] });
+  } catch (err) {
+    console.error('Error updating vendor:', err);
+    res.status(500).json({ error: 'Error updating vendor' });
+  }
 });
 
-// DELETE /api/vendor/:vid - delete vendor account (removes from vendor and vendor_auth)
-routes.delete('/vendor/:vid', (req, res) => {
+routes.delete('/vendor/:vid', async (req, res) => {
   const vid = req.params.vid;
+  try {
+    await db.query('DELETE FROM vendor_auth WHERE vendor_id = ?', [vid]);
+    const [result] = await db.query('DELETE FROM vendor WHERE id = ?', [vid]);
 
-  // First delete vendor_auth records for this vendor
-  db.query('DELETE FROM vendor_auth WHERE vendor_id = ?', [vid], (authErr) => {
-    if (authErr) {
-      console.error('Error deleting vendor_auth:', authErr);
-      return res.status(500).json({ error: 'Error deleting vendor account' });
-    }
+    if (result.affectedRows === 0) return res.status(404).json({ error: 'Vendor not found' });
 
-    // Then delete the vendor (cascade may handle products/reservations depending on DB setup)
-    db.query('DELETE FROM vendor WHERE id = ?', [vid], (vendorErr, result) => {
-      if (vendorErr) {
-        console.error('Error deleting vendor:', vendorErr);
-        return res.status(500).json({ error: 'Error deleting vendor account' });
-      }
-      if (result.affectedRows === 0) {
-        return res.status(404).json({ error: 'Vendor not found' });
-      }
-      return res.json({ message: 'Vendor account deleted' });
-    });
-  });
+    res.json({ message: 'Vendor account deleted' });
+  } catch (err) {
+    console.error('Error deleting vendor:', err);
+    res.status(500).json({ error: 'Error deleting vendor account' });
+  }
 });
 
-routes.get('/vendor/:vid/product', (req, res) => {
-  db.query(`SELECT * FROM product where vid = ${req.params["vid"]}`, (err, results) => {
-    if (err) {
-      console.error('Error executing query: ' + err.stack);
-      res.status(500).send('Error fetching products');
-      return;
-    }
+routes.get('/vendor/:vid/product', async (req, res) => {
+  try {
+    const [results] = await db.query('SELECT * FROM product WHERE vid = ?', [req.params.vid]);
     res.json(results);
-  });
+  } catch (err) {
+    console.error('Error fetching products:', err);
+    res.status(500).send('Error fetching products');
+  }
 });
 
-// POST /api/vendor/:vid/product - create a new product for vendor
-routes.post('/vendor/:vid/product', (req, res) => {
+routes.post('/vendor/:vid/product', async (req, res) => {
   const vid = req.params.vid;
   const { name, description, count, price } = req.body;
 
   if (!name) return res.status(400).json({ error: 'name is required' });
 
-  const sql = 'INSERT INTO product (name, description, count, price, vid) VALUES (?, ?, ?, ?, ?)';
-  db.query(sql, [name, description || '', count || 0, price || 0, vid], (err, result) => {
-    if (err) {
-      console.error('Error inserting product:', err);
-      return res.status(500).json({ error: 'Error creating product' });
-    }
-    // return the newly created product
-    db.query('SELECT * FROM product WHERE id = ?', [result.insertId], (fErr, rows) => {
-      if (fErr) {
-        console.error('Error fetching new product:', fErr);
-        return res.status(500).json({ error: 'Error fetching new product' });
-      }
-      return res.status(201).json({ message: 'Product created', product: rows[0] });
-    });
-  });
+  try {
+    const [result] = await db.query(
+      'INSERT INTO product (name, description, count, price, vid) VALUES (?, ?, ?, ?, ?)',
+      [name, description || '', count || 0, price || 0, vid]
+    );
+    const [rows] = await db.query('SELECT * FROM product WHERE id = ?', [result.insertId]);
+    res.status(201).json({ message: 'Product created', product: rows[0] });
+  } catch (err) {
+    console.error('Error creating product:', err);
+    res.status(500).json({ error: 'Error creating product' });
+  }
 });
 
-// PUT /api/product/:pid - update product
-routes.put('/product/:pid', (req, res) => {
+routes.put('/product/:pid', async (req, res) => {
   const pid = req.params.pid;
   const { name, description, count, price } = req.body;
 
   if (!name) return res.status(400).json({ error: 'name is required' });
 
-  const sql = 'UPDATE product SET name = ?, description = ?, count = ?, price = ? WHERE id = ?';
-  db.query(sql, [name, description || '', count || 0, price || 0, pid], (err, result) => {
-    if (err) {
-      console.error('Error updating product:', err);
-      return res.status(500).json({ error: 'Error updating product' });
-    }
+  try {
+    const [result] = await db.query(
+      'UPDATE product SET name = ?, description = ?, count = ?, price = ? WHERE id = ?',
+      [name, description || '', count || 0, price || 0, pid]
+    );
+
     if (result.affectedRows === 0) return res.status(404).json({ error: 'Product not found' });
 
-    db.query('SELECT * FROM product WHERE id = ?', [pid], (fErr, rows) => {
-      if (fErr) {
-        console.error('Error fetching updated product:', fErr);
-        return res.status(500).json({ error: 'Error fetching updated product' });
-      }
-      return res.json({ message: 'Product updated', product: rows[0] });
-    });
-  });
+    const [rows] = await db.query('SELECT * FROM product WHERE id = ?', [pid]);
+    res.json({ message: 'Product updated', product: rows[0] });
+  } catch (err) {
+    console.error('Error updating product:', err);
+    res.status(500).json({ error: 'Error updating product' });
+  }
 });
 
-// DELETE /api/product/:pid - delete a product
-routes.delete('/product/:pid', (req, res) => {
-  const pid = req.params.pid;
-  db.query('DELETE FROM product WHERE id = ?', [pid], (err, result) => {
-    if (err) {
-      console.error('Error deleting product:', err);
-      return res.status(500).json({ error: 'Error deleting product' });
-    }
+routes.delete('/product/:pid', async (req, res) => {
+  try {
+    const [result] = await db.query('DELETE FROM product WHERE id = ?', [req.params.pid]);
     if (result.affectedRows === 0) return res.status(404).json({ error: 'Product not found' });
-    return res.json({ message: 'Product deleted' });
-  });
+    res.json({ message: 'Product deleted' });
+  } catch (err) {
+    console.error('Error deleting product:', err);
+    res.status(500).json({ error: 'Error deleting product' });
+  }
 });
 
-routes.get('/vendor/:vid/sale', (req, res) => {
-  db.query(`SELECT DISTINCT s.* FROM sale s JOIN saleitem si ON si.sid = s.id JOIN product p ON si.pid = p.id where p.vid = ${req.params["vid"]}`, (err, results) => {
-    if (err) {
-      console.error('Error executing query: ' + err.stack);
-      res.status(500).send('Error fetching sales');
-      return;
-    }
+routes.get('/vendor/:vid/sale', async (req, res) => {
+  try {
+    const [results] = await db.query(
+      `SELECT DISTINCT s.* 
+       FROM sale s 
+       JOIN saleitem si ON si.sid = s.id 
+       JOIN product p ON si.pid = p.id 
+       WHERE p.vid = ?`,
+      [req.params.vid]
+    );
     res.json(results);
-  });
+  } catch (err) {
+    console.error('Error fetching sales:', err);
+    res.status(500).send('Error fetching sales');
+  }
 });
 
-routes.get('/sale/:sid', (req, res) => {
-  db.query(`SELECT * FROM sale s where id = ${req.params["sid"]}`, (err, results) => {
-    if (err) {
-      console.error('Error executing query: ' + err.stack);
-      res.status(500).send('Error fetching sales');
-      return;
-    }
+// --- Sale endpoints ---
+routes.get('/sale/:sid', async (req, res) => {
+  try {
+    const [results] = await db.query('SELECT * FROM sale WHERE id = ?', [req.params.sid]);
     res.json(results);
-  });
+  } catch (err) {
+    console.error('Error fetching sale:', err);
+    res.status(500).send('Error fetching sale');
+  }
 });
 
-routes.get('/sale/:sid/item', (req, res) => {
-  db.query(`SELECT * FROM saleitem where sid = ${req.params["sid"]}`, (err, results) => {
-    if (err) {
-      console.error('Error executing query: ' + err.stack);
-      res.status(500).send('Error fetching saleitems');
-      return;
-    }
+routes.get('/sale/:sid/item', async (req, res) => {
+  try {
+    const [results] = await db.query('SELECT * FROM saleitem WHERE sid = ?', [req.params.sid]);
     res.json(results);
-  });
+  } catch (err) {
+    console.error('Error fetching sale items:', err);
+    res.status(500).send('Error fetching sale items');
+  }
 });
 
-routes.get('/sale/:sid/product', (req, res) => {
-  db.query(`SELECT * FROM saleitem si JOIN product p ON si.pid = p.id where si.sid = ${req.params["sid"]}`, (err, results) => {
-    if (err) {
-      console.error('Error executing query: ' + err.stack);
-      res.status(500).send('Error fetching saleitems');
-      return;
-    }
+routes.get('/sale/:sid/product', async (req, res) => {
+  try {
+    const [results] = await db.query(
+      'SELECT * FROM saleitem si JOIN product p ON si.pid = p.id WHERE si.sid = ?',
+      [req.params.sid]
+    );
     res.json(results);
-  });
+  } catch (err) {
+    console.error('Error fetching sale products:', err);
+    res.status(500).send('Error fetching sale products');
+  }
 });
 
-routes.get('/sale/:sid/vendor', (req, res) => {
-  db.query(`SELECT DISTINCT v.* FROM saleitem si JOIN product p ON si.pid = p.id JOIN vendor v ON p.vid = v.id where si.sid = ${req.params["sid"]}`, (err, results) => {
-    if (err) {
-      console.error('Error executing query: ' + err.stack);
-      res.status(500).send('Error fetching vendors');
-      return;
-    }
+routes.get('/sale/:sid/vendor', async (req, res) => {
+  try {
+    const [results] = await db.query(
+      'SELECT DISTINCT v.* FROM saleitem si JOIN product p ON si.pid = p.id JOIN vendor v ON p.vid = v.id WHERE si.sid = ?',
+      [req.params.sid]
+    );
     res.json(results);
-  });
+  } catch (err) {
+    console.error('Error fetching sale vendors:', err);
+    res.status(500).send('Error fetching sale vendors');
+  }
 });
 
-routes.get('/product/:pid', (req, res) => {
-  db.query(`SELECT * FROM product where id = ${req.params["pid"]}`, (err, results) => {
-    if (err) {
-      console.error('Error executing query: ' + err.stack);
-      res.status(500).send('Error fetching products');
-      return;
-    }
+// --- Product endpoints ---
+routes.get('/product/:pid', async (req, res) => {
+  try {
+    const [results] = await db.query('SELECT * FROM product WHERE id = ?', [req.params.pid]);
     res.json(results);
-  });
+  } catch (err) {
+    console.error('Error fetching product:', err);
+    res.status(500).send('Error fetching product');
+  }
 });
 
-// Vendor registration: create vendor row and vendor_auth (hashed password)
-routes.post('/vendor/register', (req, res) => {
+routes.get('/product/:pid/item', async (req, res) => {
+  try {
+    const [results] = await db.query('SELECT * FROM saleitem WHERE pid = ?', [req.params.pid]);
+    res.json(results);
+  } catch (err) {
+    console.error('Error fetching sale items for product:', err);
+    res.status(500).send('Error fetching sale items');
+  }
+});
+
+// --- Vendor registration/login/forgot-password ---
+routes.post('/vendor/register', async (req, res) => {
   const { name, phone, email, description, owner, password, logo } = req.body;
 
-  if (!name || !email || !password) {
-    return res.status(400).json({ error: 'name, email and password are required' });
+  if (!name || !email || !password) return res.status(400).json({ error: 'name, email, and password required' });
+
+  try {
+    const [vendorResult] = await db.query(
+      'INSERT INTO vendor (name, phone, email, description, owner, logo) VALUES (?, ?, ?, ?, ?, ?)',
+      [name, phone || '', email || '', description || '', owner || '', logo || null]
+    );
+    const vendorId = vendorResult.insertId;
+
+    const hashed = await bcrypt.hash(password, 10);
+    await db.query('INSERT INTO vendor_auth (vendor_id, email, password) VALUES (?, ?, ?)', [vendorId, email, hashed]);
+
+    const [rows] = await db.query('SELECT * FROM vendor WHERE id = ?', [vendorId]);
+    res.status(201).json({ vendor: rows[0] });
+  } catch (err) {
+    console.error('Error registering vendor:', err);
+    res.status(500).json({ error: 'Error creating vendor' });
   }
-
-  // Insert vendor first
-  const vendorInsertSql = 'INSERT INTO vendor (name, phone, email, description, owner, logo) VALUES (?, ?, ?, ?, ?, ?)';
-  db.query(vendorInsertSql, [name, phone || '', email || '', description || '', owner || '', logo || null], (err, result) => {
-    if (err) {
-      console.error('Error inserting vendor:', err);
-      return res.status(500).json({ error: 'Error creating vendor' });
-    }
-
-    const vendorId = result.insertId;
-
-    // Hash the password and insert into vendor_auth
-    bcrypt.hash(password, 10, (hashErr, hashed) => {
-      if (hashErr) {
-        console.error('Error hashing password:', hashErr);
-        // attempt to rollback vendor insert
-        db.query('DELETE FROM vendor WHERE id = ?', [vendorId], () => {
-          return res.status(500).json({ error: 'Error creating vendor auth' });
-        });
-        return;
-      }
-
-      const authInsertSql = 'INSERT INTO vendor_auth (vendor_id, email, password) VALUES (?, ?, ?)';
-      db.query(authInsertSql, [vendorId, email, hashed], (authErr) => {
-        if (authErr) {
-          console.error('Error inserting vendor_auth:', authErr);
-          // rollback vendor insert
-          db.query('DELETE FROM vendor WHERE id = ?', [vendorId], () => {
-            return res.status(500).json({ error: 'Error creating vendor auth' });
-          });
-          return;
-        }
-
-        // Return created vendor (without password)
-        db.query('SELECT * FROM vendor WHERE id = ?', [vendorId], (fetchErr, rows) => {
-          if (fetchErr) {
-            console.error('Error fetching created vendor:', fetchErr);
-            return res.status(201).json({ message: 'Vendor created' });
-          }
-          return res.status(201).json({ vendor: rows[0] });
-        });
-      });
-    });
-  });
 });
 
-// Vendor login: authenticate using vendor_auth table
-routes.post('/vendor/login', (req, res) => {
+routes.post('/vendor/login', async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password) return res.status(400).json({ error: 'email and password required' });
 
-  db.query('SELECT * FROM vendor_auth WHERE email = ?', [email], (err, results) => {
-    if (err) {
-      console.error('Error querying vendor_auth:', err);
-      return res.status(500).json({ error: 'Server error' });
-    }
-
-    if (!results || results.length === 0) {
-      return res.status(401).json({ error: 'Invalid credentials' });
-    }
+  try {
+    const [results] = await db.query('SELECT * FROM vendor_auth WHERE email = ?', [email]);
+    if (!results || results.length === 0) return res.status(401).json({ error: 'Invalid credentials' });
 
     const auth = results[0];
-    bcrypt.compare(password, auth.password, (cmpErr, match) => {
-      if (cmpErr) {
-        console.error('Error comparing password:', cmpErr);
-        return res.status(500).json({ error: 'Server error' });
-      }
+    const match = await bcrypt.compare(password, auth.password);
+    if (!match) return res.status(401).json({ error: 'Invalid credentials' });
 
-      if (!match) return res.status(401).json({ error: 'Invalid credentials' });
-
-      // fetch vendor info
-      db.query('SELECT * FROM vendor WHERE id = ?', [auth.vendor_id], (vErr, vrows) => {
-        if (vErr) {
-          console.error('Error fetching vendor for login:', vErr);
-          return res.status(500).json({ error: 'Server error' });
-        }
-
-        const vendor = vrows && vrows[0];
-        // return vendor info (no password). Include vendor_id for compatibility with frontend
-        return res.json({ vendor_id: vendor?.id, vendor });
-      });
-    });
-  });
-});
-
-  // Vendor forgot-password: verify vendor details and set a new hashed password
-  routes.post('/vendor/forgot-password', (req, res) => {
-    const { email, phone, owner, newPassword } = req.body;
-
-    if (!email || !newPassword) return res.status(400).json({ error: 'email and newPassword are required' });
-
-    // Find vendor by provided details
-    db.query('SELECT * FROM vendor WHERE email = ? AND phone = ? AND owner = ?', [email, phone || '', owner || ''], (err, rows) => {
-      if (err) {
-        console.error('Error querying vendor for forgot-password:', err);
-        return res.status(500).json({ error: 'Server error' });
-      }
-
-      if (!rows || rows.length === 0) {
-        return res.status(404).json({ error: 'Vendor not found or details do not match' });
-      }
-
-      const vendor = rows[0];
-
-      // Hash new password
-      bcrypt.hash(newPassword, 10, (hashErr, hashed) => {
-        if (hashErr) {
-          console.error('Error hashing new password:', hashErr);
-          return res.status(500).json({ error: 'Server error' });
-        }
-
-        // Upsert into vendor_auth: if auth exists update, otherwise insert
-        db.query('SELECT * FROM vendor_auth WHERE vendor_id = ?', [vendor.id], (aErr, aRows) => {
-          if (aErr) {
-            console.error('Error querying vendor_auth for forgot-password:', aErr);
-            return res.status(500).json({ error: 'Server error' });
-          }
-
-          if (aRows && aRows.length > 0) {
-            db.query('UPDATE vendor_auth SET password = ? WHERE vendor_id = ?', [hashed, vendor.id], (uErr) => {
-              if (uErr) {
-                console.error('Error updating vendor_auth password:', uErr);
-                return res.status(500).json({ error: 'Server error' });
-              }
-              return res.json({ message: 'Password updated' });
-            });
-          } else {
-            // create auth record
-            db.query('INSERT INTO vendor_auth (vendor_id, email, password) VALUES (?, ?, ?)', [vendor.id, email, hashed], (iErr) => {
-              if (iErr) {
-                console.error('Error inserting vendor_auth for forgot-password:', iErr);
-                return res.status(500).json({ error: 'Server error' });
-              }
-              return res.json({ message: 'Password set' });
-            });
-          }
-        });
-      });
-    });
-  });
-
-// GET /api/product - return paginated products and total count
-routes.get('/product', (req, res) => {
-  const page = Math.max(1, parseInt(req.query.page) || 1);
-  const limit = Math.max(1, parseInt(req.query.limit) || 20);
-  const offset = (page - 1) * limit;
-
-  const search = `%${req.query.search}%` || '%';
-
-  // first get total count
-  db.query('SELECT COUNT(*) AS total FROM product WHERE name LIKE ?', [search], (err, countResults) => {
-    if (err) {
-      console.error('Error executing count query: ' + err.stack);
-      res.status(500).send('Error fetching products');
-      return;
-    }
-
-    const total = countResults && countResults[0] ? countResults[0].total : 0;
-
-    // then fetch the paginated rows
-    db.query('SELECT * FROM product WHERE name LIKE ? LIMIT ? OFFSET ?', [search, limit, offset], (err, results) => {
-      if (err) {
-        console.error('Error executing paginated query: ' + err.stack);
-        res.status(500).send('Error fetching products');
-        return;
-      }
-
-      res.json({ products: results, total });
-    });
-  });
-});
-
-routes.get('/product/:pid/item', (req, res) => {
-  db.query(`SELECT * FROM saleitem where pid = ${req.params["pid"]}`, (err, results) => {
-    if (err) {
-      console.error('Error executing query: ' + err.stack);
-      res.status(500).send('Error fetching saleitems');
-      return;
-    }
-    res.json(results);
-  });
-});
-
-routes.get('/booth', (req, res) => {
-  db.query(`SELECT * FROM booth`, (err, results) => {
-    if (err) {
-      console.error('Error executing query: ' + err.stack);
-      res.status(500).send('Error fetching booths');
-      return;
-    }
-    res.json(results);
-  });
-});
-
-routes.get('/booth/:bid', (req, res) => {
-  db.query(`SELECT * FROM booth where id = ${req.params["bid"]}`, (err, results) => {
-    if (err) {
-      console.error('Error executing query: ' + err.stack);
-      res.status(500).send('Error fetching booths');
-      return;
-    }
-    res.json(results);
-  });
-});
-
-// get reservations for a booth (optional day filter)
-routes.get('/booth/:bid/reservation', (req, res) => {
-  const bid = req.params.bid;
-  const day = req.query.day;     // e.g. 2025-12-02
-
-  let query = `SELECT * FROM reservation WHERE bid = ?`;
-  const params = [bid];
-
-  if (day) {
-    query += ` AND DATE(date) = ?`;
-    params.push(day);
+    const [vrows] = await db.query('SELECT * FROM vendor WHERE id = ?', [auth.vendor_id]);
+    const vendor = vrows[0];
+    res.json({ vendor_id: vendor?.id, vendor });
+  } catch (err) {
+    console.error('Error logging in vendor:', err);
+    res.status(500).json({ error: 'Server error' });
   }
-
-  db.query(query, params, (err, results) => {
-    if (err) {
-      console.error('Error executing query: ' + err.stack);
-      return res.status(500).send('Error fetching reservations');
-    }
-    res.json(results);
-  });
 });
 
-// get all reservations
-routes.get('/reservation', (req, res) => {
-  db.query(`SELECT * FROM reservation`, (err, results) => {
-    if (err) {
-      console.error('Error executing query: ' + err.stack);
-      res.status(500).send('Error fetching reservations');
-      return;
+routes.post('/vendor/forgot-password', async (req, res) => {
+  const { email, phone, owner, newPassword } = req.body;
+  if (!email || !newPassword) return res.status(400).json({ error: 'email and newPassword required' });
+
+  try {
+    const [vendors] = await db.query('SELECT * FROM vendor WHERE email = ? AND phone = ? AND owner = ?', [email, phone || '', owner || '']);
+    if (!vendors || vendors.length === 0) return res.status(404).json({ error: 'Vendor not found or details do not match' });
+
+    const vendor = vendors[0];
+    const hashed = await bcrypt.hash(newPassword, 10);
+
+    const [authRows] = await db.query('SELECT * FROM vendor_auth WHERE vendor_id = ?', [vendor.id]);
+    if (authRows && authRows.length > 0) {
+      await db.query('UPDATE vendor_auth SET password = ? WHERE vendor_id = ?', [hashed, vendor.id]);
+      res.json({ message: 'Password updated' });
+    } else {
+      await db.query('INSERT INTO vendor_auth (vendor_id, email, password) VALUES (?, ?, ?)', [vendor.id, email, hashed]);
+      res.json({ message: 'Password set' });
     }
-    res.json(results);
-  });
-});
-
-// create reservation
-routes.post('/reservation', (req, res) => {
-  const { vid, bid, date, duration } = req.body;
-
-  if (!vid || !bid || !date || !duration) {
-    res.status(400).send('Missing required reservation fields');
-    return;
+  } catch (err) {
+    console.error('Error in forgot-password:', err);
+    res.status(500).json({ error: 'Server error' });
   }
+});
 
-  const query = `INSERT INTO reservation (vid, bid, date, duration) VALUES (?, ?, ?, ?)`;
+// --- Paginated products ---
+routes.get('/product', async (req, res) => {
+  try {
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.max(1, parseInt(req.query.limit) || 20);
+    const offset = (page - 1) * limit;
+    const search = `%${req.query.search || ''}%`;
 
-  db.query(query, [vid, bid, date, duration], (err, results) => {
-    if (err) {
-      console.error('Error executing query: ' + err.stack);
-      res.status(500).send('Error creating reservation');
-      return;
+    // Get total count
+    const [countResults] = await db.query('SELECT COUNT(*) AS total FROM product WHERE name LIKE ?', [search]);
+    const total = countResults[0]?.total || 0;
+
+    // Get paginated rows
+    const [results] = await db.query('SELECT * FROM product WHERE name LIKE ? LIMIT ? OFFSET ?', [search, limit, offset]);
+
+    res.json({ products: results, total });
+  } catch (err) {
+    console.error('Error fetching products:', err);
+    res.status(500).send('Error fetching products');
+  }
+});
+
+// --- Sale items for a product ---
+routes.get('/product/:pid/item', async (req, res) => {
+  try {
+    const [results] = await db.query('SELECT * FROM saleitem WHERE pid = ?', [req.params.pid]);
+    res.json(results);
+  } catch (err) {
+    console.error('Error fetching sale items for product:', err);
+    res.status(500).send('Error fetching sale items');
+  }
+});
+
+// --- Booths ---
+routes.get('/booth', async (req, res) => {
+  try {
+    const [results] = await db.query('SELECT * FROM booth');
+    res.json(results);
+  } catch (err) {
+    console.error('Error fetching booths:', err);
+    res.status(500).send('Error fetching booths');
+  }
+});
+
+routes.get('/booth/:bid', async (req, res) => {
+  try {
+    const [results] = await db.query('SELECT * FROM booth WHERE id = ?', [req.params.bid]);
+    res.json(results);
+  } catch (err) {
+    console.error('Error fetching booth:', err);
+    res.status(500).send('Error fetching booth');
+  }
+});
+
+// --- Reservations for a booth (optional day filter) ---
+routes.get('/booth/:bid/reservation', async (req, res) => {
+  try {
+    const bid = req.params.bid;
+    const day = req.query.day;
+
+    let query = 'SELECT * FROM reservation WHERE bid = ?';
+    const params = [bid];
+    if (day) {
+      query += ' AND DATE(date) = ?';
+      params.push(day);
     }
+
+    const [results] = await db.query(query, params);
+    res.json(results);
+  } catch (err) {
+    console.error('Error fetching booth reservations:', err);
+    res.status(500).send('Error fetching reservations');
+  }
+});
+
+// --- All reservations ---
+routes.get('/reservation', async (req, res) => {
+  try {
+    const [results] = await db.query('SELECT * FROM reservation');
+    res.json(results);
+  } catch (err) {
+    console.error('Error fetching reservations:', err);
+    res.status(500).send('Error fetching reservations');
+  }
+});
+
+// --- Create reservation ---
+routes.post('/reservation', async (req, res) => {
+  try {
+    const { vid, bid, date, duration } = req.body;
+    if (!vid || !bid || !date || !duration) {
+      return res.status(400).send('Missing required reservation fields');
+    }
+
+    const [results] = await db.query(
+      'INSERT INTO reservation (vid, bid, date, duration) VALUES (?, ?, ?, ?)',
+      [vid, bid, date, duration]
+    );
 
     res.status(201).json({ message: 'Reservation created successfully', id: results.insertId });
-  });
-});
-
-// get booth reservations for day  (/api/reservations?date=YYYY-MM-DD)
-routes.get('/reservations', (req, res) => {
-  const { date } = req.query;
-
-  if (!date) {
-    res.status(400).send('Missing date parameter');
-    return;
+  } catch (err) {
+    console.error('Error creating reservation:', err);
+    res.status(500).send('Error creating reservation');
   }
-
-  const query = `
-    SELECT r.id, r.bid, r.vid, r.date, r.duration, v.name AS vendor_name
-    FROM reservation r
-    JOIN vendor v ON r.vid = v.id
-    WHERE DATE(r.date) = ?
-    ORDER BY r.bid, r.date 
-  `;
-
-  db.query(query, [date], (err, results) => {
-    if (err) {
-      console.error('Error executing query: ' + err.stack);
-      res.status(500).send('Error fetching reservations');
-      return;
-    }
-    res.json(results);
-  });
 });
 
-// Get booth reservation for a vendor
-routes.get('/vendor/:vid/booth', (req, res) => {
-    db.query(`
-    SELECT b.*, r.date as reservationDate, r.duration 
-    FROM booth b
-    JOIN reservation r ON r.bid = b.id
-    WHERE r.vid = ?
-    ORDER BY r.date DESC
-    LIMIT 1
-  `, [req.params["vid"]], (err, results) => {
-        if (err) {
-            console.error('Error executing query: ' + err.stack);
-            res.status(500).send('Error fetching booth');
-            return;
-        }
-        res.json(results);
-    });
+// --- Get booth reservations for a specific day ---
+routes.get('/reservations', async (req, res) => {
+  try {
+    const { date } = req.query;
+    if (!date) return res.status(400).send('Missing date parameter');
+
+    const [results] = await db.query(
+      `SELECT r.id, r.bid, r.vid, r.date, r.duration, v.name AS vendor_name
+       FROM reservation r
+       JOIN vendor v ON r.vid = v.id
+       WHERE DATE(r.date) = ?
+       ORDER BY r.bid, r.date`,
+      [date]
+    );
+
+    res.json(results);
+  } catch (err) {
+    console.error('Error fetching reservations for day:', err);
+    res.status(500).send('Error fetching reservations');
+  }
+});
+
+// --- Get latest booth reservation for a vendor ---
+routes.get('/vendor/:vid/booth', async (req, res) => {
+  try {
+    const [results] = await db.query(
+      `SELECT b.*, r.date AS reservationDate, r.duration
+       FROM booth b
+       JOIN reservation r ON r.bid = b.id
+       WHERE r.vid = ?
+       ORDER BY r.date DESC
+       LIMIT 1`,
+      [req.params.vid]
+    );
+
+    res.json(results);
+  } catch (err) {
+    console.error('Error fetching vendor booth reservation:', err);
+    res.status(500).send('Error fetching booth');
+  }
 });
 
 

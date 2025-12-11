@@ -12,8 +12,8 @@ module.exports = (db) => {
                 COUNT(DISTINCT s.id) as totalSales,
                 COALESCE(SUM(si.quantity * p.price), 0) as totalRevenue
             FROM sale s
-                     JOIN saleitem si ON si.sid = s.id
-                     JOIN product p ON si.pid = p.id
+                     JOIN SaleItem si ON si.sid = s.id
+                     JOIN Product p ON si.pid = p.id
             WHERE p.vid = ?
         `, [vid], (err, revenueResults) => {
             if (err) {
@@ -23,7 +23,7 @@ module.exports = (db) => {
             }
 
             // Get active products count
-            db.query(`SELECT COUNT(*) as activeProducts FROM product WHERE vid = ?`, [vid], (err, productResults) => {
+            db.query(`SELECT COUNT(*) as activeProducts FROM Product WHERE vid = ?`, [vid], (err, productResults) => {
                 if (err) {
                     console.error('Error executing query: ' + err.stack);
                     res.status(500).send('Error fetching stats');
@@ -51,13 +51,13 @@ module.exports = (db) => {
         db.query(`
             SELECT
                 s.id as id,
-                p.name as product,
+                p.name as Product,
                 s.date,
                 (si.quantity * p.price * (1 - s.discount/100)) as amount,
                 'Customer' as buyer
-            FROM sale s
-                     JOIN saleitem si ON si.sid = s.id
-                     JOIN product p ON si.pid = p.id
+            FROM Sale s
+                     JOIN SaleItem si ON si.sid = s.id
+                     JOIN Product p ON si.pid = p.id
             WHERE p.vid = ?
             ORDER BY s.date DESC
                 LIMIT 10
@@ -80,8 +80,8 @@ module.exports = (db) => {
                 p.name,
                 COUNT(si.sid) as sales,
                 COALESCE(SUM(si.quantity * p.price), 0) as revenue
-            FROM product p
-                     LEFT JOIN saleitem si ON si.pid = p.id
+            FROM Product p
+                     LEFT JOIN SaleItem si ON si.pid = p.id
             WHERE p.vid = ?
             GROUP BY p.id, p.name
             ORDER BY revenue DESC
@@ -104,9 +104,9 @@ module.exports = (db) => {
             SELECT
                 DATE_FORMAT(s.date, '%b') as month,
         COALESCE(SUM(si.quantity * p.price), 0) as sales
-            FROM sale s
-                JOIN saleitem si ON si.sid = s.id
-                JOIN product p ON si.pid = p.id
+            FROM Sale s
+                JOIN SaleItem si ON si.sid = s.id
+                JOIN Product p ON si.pid = p.id
             WHERE p.vid = ?
               AND s.date >= DATE_SUB(CURDATE(), INTERVAL 5 MONTH)
             GROUP BY DATE_FORMAT(s.date, '%Y-%m'), DATE_FORMAT(s.date, '%b')

@@ -80,15 +80,22 @@ let db;
   }
 })();
 
-// TESTING: List all tables
-db.query('SHOW TABLES', (err, results) => {
-  if (err) {
-    console.error('Error listing tables:', err);
-  } else {
+// TESTING: debug
+async function debugTables() {
+  try {
+    const [dbName] = await db.query('SELECT DATABASE() AS currentDB');
+    console.log('Connected to database:', dbName[0].currentDB);
+
+    const [tables] = await db.query('SHOW TABLES');
     console.log('Tables in current database:');
-    results.forEach(row => console.log(row));
+    tables.forEach(row => console.log(row));
+  } catch (err) {
+    console.error('SQL debug error:', err);
   }
-});
+}
+
+debugTables();
+
 
 const dashboardRoutes = require('./routes/dashboardRoutes');
 

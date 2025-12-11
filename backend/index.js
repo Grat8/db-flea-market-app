@@ -44,7 +44,7 @@ let db;
         const [tables] = await db.query('SHOW TABLES');
         console.log('Tables in DB:', tables);
 
-        const [vendors] = await db.query('SELECT * FROM vendor LIMIT 5');
+        const [vendors] = await db.query('SELECT * FROM Vendor LIMIT 5');
         console.log('Sample vendors:', vendors);
       } catch (err) {
         console.error('Debug query error:', err);
@@ -124,7 +124,7 @@ routes.get('/', async (req, res) => {
 
 routes.get('/vendor', async (req, res) => {
   try {
-    const [results] = await db.query('SELECT * FROM vendor');
+    const [results] = await db.query('SELECT * FROM Vendor');
     res.json(results);
   } catch (err) {
     console.error('Error fetching vendors:', err);
@@ -134,7 +134,7 @@ routes.get('/vendor', async (req, res) => {
 
 routes.get('/vendor/:vid', async (req, res) => {
   try {
-    const [results] = await db.query('SELECT * FROM vendor WHERE id = ?', [req.params.vid]);
+    const [results] = await db.query('SELECT * FROM Vendor WHERE id = ?', [req.params.vid]);
     res.json(results);
   } catch (err) {
     console.error('Error fetching vendor:', err);
@@ -150,7 +150,7 @@ routes.put('/vendor/:vid', async (req, res) => {
 
   try {
     const [result] = await db.query(
-      'UPDATE vendor SET name = ?, phone = ?, email = ?, description = ?, owner = ?, logo = ? WHERE id = ?',
+      'UPDATE Vendor SET name = ?, phone = ?, email = ?, description = ?, owner = ?, logo = ? WHERE id = ?',
       [name, phone || '', email || '', description || '', owner || '', logo || null, vid]
     );
 
@@ -158,7 +158,7 @@ routes.put('/vendor/:vid', async (req, res) => {
       return res.status(404).json({ error: 'Vendor not found' });
     }
 
-    const [rows] = await db.query('SELECT * FROM vendor WHERE id = ?', [vid]);
+    const [rows] = await db.query('SELECT * FROM Vendor WHERE id = ?', [vid]);
     return res.json({ message: 'Vendor updated', vendor: rows[0] });
   } catch (err) {
     console.error('Error updating vendor:', err);
@@ -170,7 +170,7 @@ routes.delete('/vendor/:vid', async (req, res) => {
   const vid = req.params.vid;
   try {
     await db.query('DELETE FROM vendor_auth WHERE vendor_id = ?', [vid]);
-    const [result] = await db.query('DELETE FROM vendor WHERE id = ?', [vid]);
+    const [result] = await db.query('DELETE FROM Vendor WHERE id = ?', [vid]);
 
     if (result.affectedRows === 0) return res.status(404).json({ error: 'Vendor not found' });
 
@@ -183,7 +183,7 @@ routes.delete('/vendor/:vid', async (req, res) => {
 
 routes.get('/vendor/:vid/product', async (req, res) => {
   try {
-    const [results] = await db.query('SELECT * FROM product WHERE vid = ?', [req.params.vid]);
+    const [results] = await db.query('SELECT * FROM Product WHERE vid = ?', [req.params.vid]);
     res.json(results);
   } catch (err) {
     console.error('Error fetching products:', err);
@@ -199,10 +199,10 @@ routes.post('/vendor/:vid/product', async (req, res) => {
 
   try {
     const [result] = await db.query(
-      'INSERT INTO product (name, description, count, price, vid) VALUES (?, ?, ?, ?, ?)',
+      'INSERT INTO Product (name, description, count, price, vid) VALUES (?, ?, ?, ?, ?)',
       [name, description || '', count || 0, price || 0, vid]
     );
-    const [rows] = await db.query('SELECT * FROM product WHERE id = ?', [result.insertId]);
+    const [rows] = await db.query('SELECT * FROM Product WHERE id = ?', [result.insertId]);
     res.status(201).json({ message: 'Product created', product: rows[0] });
   } catch (err) {
     console.error('Error creating product:', err);
@@ -218,13 +218,13 @@ routes.put('/product/:pid', async (req, res) => {
 
   try {
     const [result] = await db.query(
-      'UPDATE product SET name = ?, description = ?, count = ?, price = ? WHERE id = ?',
+      'UPDATE Product SET name = ?, description = ?, count = ?, price = ? WHERE id = ?',
       [name, description || '', count || 0, price || 0, pid]
     );
 
     if (result.affectedRows === 0) return res.status(404).json({ error: 'Product not found' });
 
-    const [rows] = await db.query('SELECT * FROM product WHERE id = ?', [pid]);
+    const [rows] = await db.query('SELECT * FROM Product WHERE id = ?', [pid]);
     res.json({ message: 'Product updated', product: rows[0] });
   } catch (err) {
     console.error('Error updating product:', err);
@@ -234,7 +234,7 @@ routes.put('/product/:pid', async (req, res) => {
 
 routes.delete('/product/:pid', async (req, res) => {
   try {
-    const [result] = await db.query('DELETE FROM product WHERE id = ?', [req.params.pid]);
+    const [result] = await db.query('DELETE FROM Product WHERE id = ?', [req.params.pid]);
     if (result.affectedRows === 0) return res.status(404).json({ error: 'Product not found' });
     res.json({ message: 'Product deleted' });
   } catch (err) {
@@ -247,9 +247,9 @@ routes.get('/vendor/:vid/sale', async (req, res) => {
   try {
     const [results] = await db.query(
       `SELECT DISTINCT s.* 
-       FROM sale s 
-       JOIN saleitem si ON si.sid = s.id 
-       JOIN product p ON si.pid = p.id 
+       FROM Sale s 
+       JOIN SaleItem si ON si.sid = s.id 
+       JOIN Product p ON si.pid = p.id 
        WHERE p.vid = ?`,
       [req.params.vid]
     );
@@ -263,7 +263,7 @@ routes.get('/vendor/:vid/sale', async (req, res) => {
 // --- Sale endpoints ---
 routes.get('/sale/:sid', async (req, res) => {
   try {
-    const [results] = await db.query('SELECT * FROM sale WHERE id = ?', [req.params.sid]);
+    const [results] = await db.query('SELECT * FROM Sale WHERE id = ?', [req.params.sid]);
     res.json(results);
   } catch (err) {
     console.error('Error fetching sale:', err);
@@ -273,7 +273,7 @@ routes.get('/sale/:sid', async (req, res) => {
 
 routes.get('/sale/:sid/item', async (req, res) => {
   try {
-    const [results] = await db.query('SELECT * FROM saleitem WHERE sid = ?', [req.params.sid]);
+    const [results] = await db.query('SELECT * FROM SaleItem WHERE sid = ?', [req.params.sid]);
     res.json(results);
   } catch (err) {
     console.error('Error fetching sale items:', err);
@@ -284,7 +284,7 @@ routes.get('/sale/:sid/item', async (req, res) => {
 routes.get('/sale/:sid/product', async (req, res) => {
   try {
     const [results] = await db.query(
-      'SELECT * FROM saleitem si JOIN product p ON si.pid = p.id WHERE si.sid = ?',
+      'SELECT * FROM SaleItem si JOIN Product p ON si.pid = p.id WHERE si.sid = ?',
       [req.params.sid]
     );
     res.json(results);
@@ -297,7 +297,7 @@ routes.get('/sale/:sid/product', async (req, res) => {
 routes.get('/sale/:sid/vendor', async (req, res) => {
   try {
     const [results] = await db.query(
-      'SELECT DISTINCT v.* FROM saleitem si JOIN product p ON si.pid = p.id JOIN vendor v ON p.vid = v.id WHERE si.sid = ?',
+      'SELECT DISTINCT v.* FROM SaleItem si JOIN Product p ON si.pid = p.id JOIN Vendor v ON p.vid = v.id WHERE si.sid = ?',
       [req.params.sid]
     );
     res.json(results);
@@ -310,7 +310,7 @@ routes.get('/sale/:sid/vendor', async (req, res) => {
 // --- Product endpoints ---
 routes.get('/product/:pid', async (req, res) => {
   try {
-    const [results] = await db.query('SELECT * FROM product WHERE id = ?', [req.params.pid]);
+    const [results] = await db.query('SELECT * FROM Product WHERE id = ?', [req.params.pid]);
     res.json(results);
   } catch (err) {
     console.error('Error fetching product:', err);
@@ -320,7 +320,7 @@ routes.get('/product/:pid', async (req, res) => {
 
 routes.get('/product/:pid/item', async (req, res) => {
   try {
-    const [results] = await db.query('SELECT * FROM saleitem WHERE pid = ?', [req.params.pid]);
+    const [results] = await db.query('SELECT * FROM SaleItem WHERE pid = ?', [req.params.pid]);
     res.json(results);
   } catch (err) {
     console.error('Error fetching sale items for product:', err);
@@ -336,7 +336,7 @@ routes.post('/vendor/register', async (req, res) => {
 
   try {
     const [vendorResult] = await db.query(
-      'INSERT INTO vendor (name, phone, email, description, owner, logo) VALUES (?, ?, ?, ?, ?, ?)',
+      'INSERT INTO Vendor (name, phone, email, description, owner, logo) VALUES (?, ?, ?, ?, ?, ?)',
       [name, phone || '', email || '', description || '', owner || '', logo || null]
     );
     const vendorId = vendorResult.insertId;
@@ -344,7 +344,7 @@ routes.post('/vendor/register', async (req, res) => {
     const hashed = await bcrypt.hash(password, 10);
     await db.query('INSERT INTO vendor_auth (vendor_id, email, password) VALUES (?, ?, ?)', [vendorId, email, hashed]);
 
-    const [rows] = await db.query('SELECT * FROM vendor WHERE id = ?', [vendorId]);
+    const [rows] = await db.query('SELECT * FROM Vendor WHERE id = ?', [vendorId]);
     res.status(201).json({ vendor: rows[0] });
   } catch (err) {
     console.error('Error registering vendor:', err);
@@ -364,7 +364,7 @@ routes.post('/vendor/login', async (req, res) => {
     const match = await bcrypt.compare(password, auth.password);
     if (!match) return res.status(401).json({ error: 'Invalid credentials' });
 
-    const [vrows] = await db.query('SELECT * FROM vendor WHERE id = ?', [auth.vendor_id]);
+    const [vrows] = await db.query('SELECT * FROM Vendor WHERE id = ?', [auth.vendor_id]);
     const vendor = vrows[0];
     res.json({ vendor_id: vendor?.id, vendor });
   } catch (err) {
@@ -378,7 +378,7 @@ routes.post('/vendor/forgot-password', async (req, res) => {
   if (!email || !newPassword) return res.status(400).json({ error: 'email and newPassword required' });
 
   try {
-    const [vendors] = await db.query('SELECT * FROM vendor WHERE email = ? AND phone = ? AND owner = ?', [email, phone || '', owner || '']);
+    const [vendors] = await db.query('SELECT * FROM Vendor WHERE email = ? AND phone = ? AND owner = ?', [email, phone || '', owner || '']);
     if (!vendors || vendors.length === 0) return res.status(404).json({ error: 'Vendor not found or details do not match' });
 
     const vendor = vendors[0];
@@ -407,11 +407,11 @@ routes.get('/product', async (req, res) => {
     const search = `%${req.query.search || ''}%`;
 
     // Get total count
-    const [countResults] = await db.query('SELECT COUNT(*) AS total FROM product WHERE name LIKE ?', [search]);
+    const [countResults] = await db.query('SELECT COUNT(*) AS total FROM Product WHERE name LIKE ?', [search]);
     const total = countResults[0]?.total || 0;
 
     // Get paginated rows
-    const [results] = await db.query('SELECT * FROM product WHERE name LIKE ? LIMIT ? OFFSET ?', [search, limit, offset]);
+    const [results] = await db.query('SELECT * FROM Product WHERE name LIKE ? LIMIT ? OFFSET ?', [search, limit, offset]);
 
     res.json({ products: results, total });
   } catch (err) {
@@ -423,7 +423,7 @@ routes.get('/product', async (req, res) => {
 // --- Sale items for a product ---
 routes.get('/product/:pid/item', async (req, res) => {
   try {
-    const [results] = await db.query('SELECT * FROM saleitem WHERE pid = ?', [req.params.pid]);
+    const [results] = await db.query('SELECT * FROM SaleItem WHERE pid = ?', [req.params.pid]);
     res.json(results);
   } catch (err) {
     console.error('Error fetching sale items for product:', err);
@@ -434,7 +434,7 @@ routes.get('/product/:pid/item', async (req, res) => {
 // --- Booths ---
 routes.get('/booth', async (req, res) => {
   try {
-    const [results] = await db.query('SELECT * FROM booth');
+    const [results] = await db.query('SELECT * FROM Booth');
     res.json(results);
   } catch (err) {
     console.error('Error fetching booths:', err);
@@ -444,7 +444,7 @@ routes.get('/booth', async (req, res) => {
 
 routes.get('/booth/:bid', async (req, res) => {
   try {
-    const [results] = await db.query('SELECT * FROM booth WHERE id = ?', [req.params.bid]);
+    const [results] = await db.query('SELECT * FROM Booth WHERE id = ?', [req.params.bid]);
     res.json(results);
   } catch (err) {
     console.error('Error fetching booth:', err);
@@ -458,7 +458,7 @@ routes.get('/booth/:bid/reservation', async (req, res) => {
     const bid = req.params.bid;
     const day = req.query.day;
 
-    let query = 'SELECT * FROM reservation WHERE bid = ?';
+    let query = 'SELECT * FROM Reservation WHERE bid = ?';
     const params = [bid];
     if (day) {
       query += ' AND DATE(date) = ?';
@@ -476,7 +476,7 @@ routes.get('/booth/:bid/reservation', async (req, res) => {
 // --- All reservations ---
 routes.get('/reservation', async (req, res) => {
   try {
-    const [results] = await db.query('SELECT * FROM reservation');
+    const [results] = await db.query('SELECT * FROM Reservation');
     res.json(results);
   } catch (err) {
     console.error('Error fetching reservations:', err);
@@ -493,7 +493,7 @@ routes.post('/reservation', async (req, res) => {
     }
 
     const [results] = await db.query(
-      'INSERT INTO reservation (vid, bid, date, duration) VALUES (?, ?, ?, ?)',
+      'INSERT INTO Reservation (vid, bid, date, duration) VALUES (?, ?, ?, ?)',
       [vid, bid, date, duration]
     );
 
@@ -512,8 +512,8 @@ routes.get('/reservations', async (req, res) => {
 
     const [results] = await db.query(
       `SELECT r.id, r.bid, r.vid, r.date, r.duration, v.name AS vendor_name
-       FROM reservation r
-       JOIN vendor v ON r.vid = v.id
+       FROM Reservation r
+       JOIN Vendor v ON r.vid = v.id
        WHERE DATE(r.date) = ?
        ORDER BY r.bid, r.date`,
       [date]
@@ -531,8 +531,8 @@ routes.get('/vendor/:vid/booth', async (req, res) => {
   try {
     const [results] = await db.query(
       `SELECT b.*, r.date AS reservationDate, r.duration
-       FROM booth b
-       JOIN reservation r ON r.bid = b.id
+       FROM Booth b
+       JOIN Reservation r ON r.bid = b.id
        WHERE r.vid = ?
        ORDER BY r.date DESC
        LIMIT 1`,
